@@ -63,3 +63,11 @@ VirtualFS has a typed URI, URI resolver, provider, registry, and local file prov
 Evidence: `src/virtual_fs.cr`, `spec/virtual_fs_spec.cr`, `docs/specs/VirtualFileSystemSpec.cs.md`.
 
 Trust: `{F:0.8,G:0.7,R:0.8}` `crystal spec` passed with 69 examples, `sh scripts/spec_check` passed, `make clean && make commander` passed, `sh scripts/commanderctl state` returned JSON with `uri` fields, the repo-local Lua VFS probe plugin returned one pending VFS action, `vfs.probe_uri` succeeded for file URI while failing closed for s3 URI, `vfs.execute_pending_action` reports no action when none is pending, multi-command automation executed a Lua-produced local VFS stat action in one process, and `scripts/vfs_smoke` passed.
+
+## LM-9: Tabs are Crystal-owned workspace state
+
+Commander has a Crystal-owned tab model with independent panel arrays and per-tab active panel state. The renderer tab bar is not implemented yet, and panel count still matches the launch-time renderer panel count.
+
+Evidence: `src/commander.cr`, `src/snapshots.cr`, `specs/TabsSpec.cs.md`.
+
+Trust: `{F:0.8,G:0.6,R:0.8}` `crystal spec` passed with 69 examples, `sh scripts/spec_check` passed, `make commander` passed, and a headless command sequence preserved different panel URIs across two tabs.

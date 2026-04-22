@@ -129,6 +129,7 @@ module Commander
     end
 
     struct WorkspaceView
+      getter active_tab : Int32
       getter active_panel : Int32
       getter status_text : String
       getter panels : Array(FilePanelView)
@@ -136,6 +137,7 @@ module Commander
       getter external_view : ExternalViewRequest?
 
       def initialize(snapshot : AppSnapshot)
+        @active_tab = snapshot.active_tab
         @active_panel = snapshot.active_panel
         @status_text = snapshot.status_text
         @panels = snapshot.panels.map { |panel| FilePanelView.new(panel) }

@@ -8,6 +8,7 @@ Commander should support multiple top-level tabs in addition to multiple panels 
 
 - Tabs MUST be modeled in Crystal, not as native AppKit tabs.
 - Each tab MUST own its own panel collection, active panel index, and future optional command line state.
+- The first implementation increment MAY keep renderer panel count fixed while switching Crystal-owned tab workspaces.
 - Tab switching MUST preserve per-tab panel paths, cursors, marked files, and scroll/cursor state.
 - Keyboard and mouse events MUST route to the active tab, then to its active/focused panel or widget.
 - The renderer/backend MUST receive the active tab snapshot and tab bar draw state.
@@ -42,3 +43,4 @@ Commander should support multiple top-level tabs in addition to multiple panels 
 - Switching tabs restores the correct panel count and cursor state.
 - Closing a tab never leaves the app without an active workspace.
 - More than two panels still cycle by `Tab` inside the active tab.
+- Headless command sequence can create two tabs with different panel URIs and switch between them without losing state.

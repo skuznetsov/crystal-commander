@@ -284,6 +284,26 @@ class PanelState
   end
 end
 
+class WorkspaceTabState
+  property title : String
+  property panels : Array(PanelState)
+  property active_panel : Int32
+
+  def initialize(@title : String, @panels : Array(PanelState), @active_panel : Int32 = 0)
+  end
+
+  def to_snapshot(index : Int32, active : Bool) : Commander::TabSnapshot
+    Commander::TabSnapshot.new(
+      index: index,
+      title: @title,
+      active: active,
+      panel_count: @panels.size,
+      active_panel: @active_panel,
+      panel_uris: @panels.map(&.location.to_uri)
+    )
+  end
+end
+
 class CommanderApp
   @panel_count : Int32
   @renderer : Commander::Renderer?
@@ -292,6 +312,8 @@ class CommanderApp
   @plugin_host : Commander::PluginHost
   @plugin_runtimes : Hash(String, Commander::PluginRuntime)
   @automation_server : Commander::AutomationServer?
+  @tabs : Array(WorkspaceTabState)
+  @active_tab : Int32
   @panels : Array(PanelState)
   @active_panel : Int32
   @running : Bool
@@ -314,6 +336,8 @@ class CommanderApp
     }
     @automation_server = automation_socket_env.try { |path| Commander::AutomationServer.new(path) }
     @panels = Array(PanelState).new(@panel_count) { PanelState.new(home_dir) }
+    @tabs = [WorkspaceTabState.new("Tab 1", @panels, 0)]
+    @active_tab = 0
     @active_panel = 0
     @running = true
     @status_text = "Ready"
@@ -521,6 +545,22 @@ class CommanderApp
       end
     end
 
+    @commands.register("tab.new", "New tab", "Create a new workspace tab") do |_ctx|
+      new_tab
+    end
+
+    @commands.register("tab.next", "Next tab", "Activate the next workspace tab") do |_ctx|
+      switch_tab(@active_tab + 1)
+    end
+
+    @commands.register("tab.previous", "Previous tab", "Activate the previous workspace tab") do |_ctx|
+      switch_tab(@active_tab - 1)
+    end
+
+    @commands.register("tab.close", "Close tab", "Close the active workspace tab") do |_ctx|
+      close_active_tab
+    end
+
     @commands.register("vfs.probe_uri", "Probe VFS URI", "Probe a URI through the VirtualFS registry without changing panels") do |ctx|
       uri = ctx.argument
       if uri && !uri.empty?
@@ -719,6 +759,62 @@ class CommanderApp
     else
       update_status("Plugin manifest errors: #{@plugin_host.load_errors.size}")
     end
+  end
+
+  private def new_tab : Nil
+    save_active_tab_state
+    panels = Array(PanelState).new(@panel_count) { PanelState.new(home_dir) }
+    @tabs << WorkspaceTabState.new("Tab #{@tabs.size + 1}", panels, 0)
+    @active_tab = @tabs.size - 1
+    @panels = panels
+    @active_panel = 0
+    @panel_count = @panels.size
+    sync_all
+    set_active_panel(0)
+    update_status("Tab #{@active_tab + 1}: #{@tabs[@active_tab].title}")
+  end
+
+  private def switch_tab(index : Int32) : Nil
+    return if @tabs.empty?
+
+    save_active_tab_state
+    wrapped = index
+    wrapped = @tabs.size - 1 if wrapped < 0
+    wrapped = 0 if wrapped >= @tabs.size
+    @active_tab = wrapped
+    restore_active_tab_state
+    sync_all
+    set_active_panel(@active_panel)
+    update_status("Tab #{@active_tab + 1}: #{@tabs[@active_tab].title}")
+  end
+
+  private def close_active_tab : Nil
+    if @tabs.size <= 1
+      update_status("Cannot close the last tab")
+      return
+    end
+
+    @tabs.delete_at(@active_tab)
+    @active_tab = @tabs.size - 1 if @active_tab >= @tabs.size
+    restore_active_tab_state
+    sync_all
+    set_active_panel(@active_panel)
+    update_status("Closed tab; active tab #{@active_tab + 1}")
+  end
+
+  private def save_active_tab_state : Nil
+    return if @tabs.empty?
+
+    tab = @tabs[@active_tab]
+    tab.panels = @panels
+    tab.active_panel = @active_panel
+  end
+
+  private def restore_active_tab_state : Nil
+    tab = @tabs[@active_tab]
+    @panels = tab.panels
+    @active_panel = tab.active_panel
+    @panel_count = @panels.size
   end
 
   private def execute_command(command_id : String, panel_index : Int32, argument : String? = nil) : Nil
@@ -1127,6 +1223,7 @@ class CommanderApp
     wrapped = @panel_count - 1 if wrapped < 0
     wrapped = 0 if wrapped >= @panel_count
     @active_panel = wrapped
+    @tabs[@active_tab].active_panel = @active_panel unless @tabs.empty?
     @renderer.try(&.set_active_panel(@active_panel))
     refresh_status_for_active
   end
@@ -1169,8 +1266,12 @@ class CommanderApp
   end
 
   private def debug_snapshot : Commander::AppSnapshot
+    save_active_tab_state
     panels = @panels.map_with_index do |panel, index|
       panel.to_snapshot(index.to_i32, index == @active_panel)
+    end
+    tabs = @tabs.map_with_index do |tab, index|
+      tab.to_snapshot(index.to_i32, index == @active_tab)
     end
 
     Commander::AppSnapshot.new(
@@ -1188,7 +1289,9 @@ class CommanderApp
       preview: @preview,
       external_view: @external_view,
       panels: panels,
-      plugin_actions: @plugin_actions
+      plugin_actions: @plugin_actions,
+      active_tab: @active_tab,
+      tabs: tabs
     )
   end
 

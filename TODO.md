@@ -128,7 +128,7 @@ Migration phases (see `specs/CrystalGuiApiSpec.cs.md`):
 
 ## 8. Add top-level workspace tabs
 
-Status: TODO
+Status: PARTIAL
 
 Risk: CAUTION
 
@@ -143,9 +143,23 @@ Definition of Done:
 - Check: `sh scripts/commanderctl command-json tab.new` emits parseable workspace JSON
 - Check: create tab A (2 panels), tab B (4 panels); switch verifies independent state
 
+Evidence:
+
+- Added Crystal-owned tab state with independent panel arrays and active panel index
+- Added `TabSnapshot` and `AppSnapshot.tabs`
+- Added `tab.new`, `tab.next`, `tab.previous`, and `tab.close`
+- Verified headless sequence creates two tabs with different panel URIs and preserves state across tab switching
+- Validation: `crystal spec` passed with 69 examples; `sh scripts/spec_check` passed; `make commander` passed
+
+Remaining:
+
+- Renderer tab bar is not implemented yet
+- `tab.set_panel_count` is not implemented yet because renderer panel count is still fixed at launch
+- Tab rename and persistence remain future work
+
 Migration phases (see `specs/TabsSpec.cs.md`):
 
-- P1: Tab model in Crystal, snapshot includes workspace; no renderer tab bar yet
+- P1: Tab model in Crystal, snapshot includes workspace; no renderer tab bar yet — partial implementation exists
 - P2: `set_tab_bar(TabBarState)` renderer command; native tab bar renders titles
 - P3: Per-tab panel independence verified by cross-tab state preservation
 - P4: Tab rename + optional persistence (future)

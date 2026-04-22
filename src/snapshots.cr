@@ -152,6 +152,20 @@ module Commander
     end
   end
 
+  struct TabSnapshot
+    include JSON::Serializable
+
+    getter index : Int32
+    getter title : String
+    getter active : Bool
+    getter panel_count : Int32
+    getter active_panel : Int32
+    getter panel_uris : Array(String)
+
+    def initialize(@index : Int32, @title : String, @active : Bool, @panel_count : Int32, @active_panel : Int32, @panel_uris : Array(String))
+    end
+  end
+
   struct AppSnapshot
     include JSON::Serializable
 
@@ -170,6 +184,8 @@ module Commander
     getter preview : PreviewSnapshot?
     getter external_view : ExternalViewSnapshot?
     getter panels : Array(PanelSnapshot)
+    getter active_tab : Int32
+    getter tabs : Array(TabSnapshot)
 
     def initialize(
       @active_panel : Int32,
@@ -186,7 +202,9 @@ module Commander
       @preview : PreviewSnapshot?,
       @external_view : ExternalViewSnapshot?,
       @panels : Array(PanelSnapshot),
-      @plugin_actions : Array(PluginActionSnapshot) = [] of PluginActionSnapshot
+      @plugin_actions : Array(PluginActionSnapshot) = [] of PluginActionSnapshot,
+      @active_tab : Int32 = 0,
+      @tabs : Array(TabSnapshot) = [] of TabSnapshot
     )
     end
   end
