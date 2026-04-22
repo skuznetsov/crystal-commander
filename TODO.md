@@ -151,6 +151,7 @@ Evidence:
 - Added `tab.rename`
 - Verified headless sequence creates two tabs with different panel URIs and preserves state across tab switching
 - Added `scripts/tabs_smoke` for no-GUI workspace tab state checks
+- Extended `scripts/tabs_smoke` to cover tab close and the last-tab guard
 - Validation: `crystal spec` passed with 69 examples; `sh scripts/spec_check` passed; `make commander` passed; `scripts/tabs_smoke` passed
 
 Remaining:

@@ -32,3 +32,23 @@ assert tabs[0]["panel_uris"][0].endswith("/commander"), tabs[0]["panel_uris"][0]
 assert tabs[1]["panel_uris"][0].endswith("/Crystal"), tabs[1]["panel_uris"][0]
 print("{} tabs; active={}; tab0={}; tab1={}".format(len(tabs), snapshot["active_tab"], tabs[0]["panel_uris"][0], tabs[1]["panel_uris"][0]))
 '
+
+close_sequence='[
+  {"command_id":"tab.new"},
+  {"command_id":"tab.close"},
+  {"command_id":"tab.close"}
+]'
+
+close_json="$(COMMANDER_AUTOMATION_COMMANDS_JSON="$close_sequence" "$repo_dir/commander")"
+printf '%s\n' "$close_json" | python3 -c '
+import json
+import sys
+
+data = json.load(sys.stdin)
+snapshot = data["snapshot"]
+tabs = snapshot["tabs"]
+assert len(tabs) == 1, len(tabs)
+assert snapshot["active_tab"] == 0, snapshot["active_tab"]
+assert data["status_text"] == "Cannot close the last tab", data["status_text"]
+print("close guard ok; tabs={}; status={}".format(len(tabs), data["status_text"]))
+'

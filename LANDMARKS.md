@@ -70,4 +70,4 @@ Commander has a Crystal-owned tab model with independent panel arrays, per-tab a
 
 Evidence: `src/commander.cr`, `src/snapshots.cr`, `specs/TabsSpec.cs.md`.
 
-Trust: `{F:0.8,G:0.6,R:0.8}` `crystal spec` passed with 69 examples, `sh scripts/spec_check` passed, `make commander` passed, and `scripts/tabs_smoke` preserved different panel URIs across two tabs.
+Trust: `{F:0.8,G:0.6,R:0.8}` `crystal spec` passed with 69 examples, `sh scripts/spec_check` passed, `make commander` passed, and `scripts/tabs_smoke` preserved different panel URIs across two tabs, verified rename, verified close, and verified the last-tab guard.
