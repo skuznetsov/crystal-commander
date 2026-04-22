@@ -21,8 +21,21 @@ module Commander
     getter ok : Bool
     getter status_text : String?
     getter error : String?
+    getter actions : Array(PluginRuntimeAction)
 
-    def initialize(@ok : Bool, @status_text : String? = nil, @error : String? = nil)
+    def initialize(@ok : Bool, @status_text : String? = nil, @error : String? = nil, @actions : Array(PluginRuntimeAction) = [] of PluginRuntimeAction)
+    end
+  end
+
+  struct PluginRuntimeAction
+    include JSON::Serializable
+
+    getter kind : String
+    getter operation : String
+    getter uri : String
+    getter target_uri : String?
+
+    def initialize(@kind : String, @operation : String, @uri : String, @target_uri : String? = nil)
     end
   end
 
@@ -81,9 +94,8 @@ module Commander
         return PluginRuntimeResponse.new(false, error: message)
       end
 
-      text = stdout.to_s.strip
-      text = "Lua command executed: #{request.command_id}" if text.empty?
-      PluginRuntimeResponse.new(true, status_text: text)
+      parsed = parse_lua_stdout(stdout.to_s, request.command_id)
+      PluginRuntimeResponse.new(true, status_text: parsed[0], actions: parsed[1])
     end
 
     private def lua_executable : String?
@@ -117,6 +129,7 @@ module Commander
       <<-LUA
       local __commands = {}
       local __status = nil
+      local __actions = {}
 
       commander = {}
 
@@ -139,6 +152,26 @@ module Commander
         end
         table.sort(schemes)
         return schemes
+      end
+
+      function commander.vfs.request(operation, uri, target_uri)
+        local item, err = commander.vfs.parse(uri)
+        if err ~= nil then
+          return nil, err
+        end
+
+        local target = nil
+        if target_uri ~= nil then
+          local target_item, target_err = commander.vfs.parse(target_uri)
+          if target_err ~= nil then
+            return nil, target_err
+          end
+          target = target_item.uri
+        end
+
+        local action = { kind = "vfs", operation = tostring(operation or ""), uri = item.uri, target_uri = target }
+        table.insert(__actions, action)
+        return action, nil
       end
 
       function commander.vfs.parse(uri)
@@ -202,7 +235,31 @@ module Commander
       if __status ~= nil then
         io.write(__status)
       end
+      if #__actions > 0 then
+        io.write("\\n__COMMANDER_ACTIONS__")
+        for _, action in ipairs(__actions) do
+          io.write("\\n" .. action.operation .. "\\t" .. action.uri .. "\\t" .. (action.target_uri or ""))
+        end
+      end
       LUA
+    end
+
+    private def parse_lua_stdout(output : String, command_id : String) : Tuple(String, Array(PluginRuntimeAction))
+      lines = output.lines
+      marker_index = lines.index("__COMMANDER_ACTIONS__")
+      unless marker_index
+        text = output.strip
+        text = "Lua command executed: #{command_id}" if text.empty?
+        return {text, [] of PluginRuntimeAction}
+      end
+
+      status_text = lines[0, marker_index].join("\n").strip
+      status_text = "Lua command executed: #{command_id}" if status_text.empty?
+      actions = lines[(marker_index + 1)..].map do |line|
+        operation, uri, target_uri = line.split("\t", 3)
+        PluginRuntimeAction.new("vfs", operation, uri, target_uri.empty? ? nil : target_uri)
+      end
+      {status_text, actions}
     end
 
     private def lua_string(value : String) : String

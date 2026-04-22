@@ -226,6 +226,7 @@ Definition of Done:
 - Lua plugins can inspect manifest-granted VFS schemes through `commander.vfs.allowed_schemes()`
 - Panel and entry snapshots expose canonical VFS `uri` fields while retaining legacy `path` fields
 - `panel.open_path` accepts `file://` URIs and fail-closed remote URIs without network access
+- Lua plugins can declare VFS request intent actions without executing provider I/O
 - Unsupported schemes fail before I/O with typed `VfsError`
 - Tests cover registry dispatch, unsupported scheme, binary-safe local read, and local mutation operations
 - `crystal spec`, `sh scripts/spec_check`, and `make commander` pass
@@ -243,7 +244,8 @@ Evidence:
 - Added Lua VFS allowed-scheme introspection
 - Added canonical VFS URI fields to panel/entry snapshots and Lua panel snapshots
 - Added URI-aware `panel.open_path` behavior for local file URIs and fail-closed remote URI probes
-- Validation: `crystal spec` passed with 62 examples; `sh scripts/spec_check` passed; `make clean && make commander` passed; `sh scripts/commanderctl state` returned JSON with `uri` fields
+- Added Lua VFS request intent actions in `PluginRuntimeResponse`
+- Validation: `crystal spec` passed with 63 examples; `sh scripts/spec_check` passed; `make clean && make commander` passed; `sh scripts/commanderctl state` returned JSON with `uri` fields
 
 Remaining:
 

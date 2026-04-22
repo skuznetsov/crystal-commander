@@ -316,4 +316,46 @@ describe Commander::LuaPluginRuntime do
       end
     end
   end
+
+  it "returns Lua-declared VFS request actions without executing provider I/O" do
+    lua = find_lua_binary
+    pending! "Lua executable not available" unless lua
+
+    previous = ENV["COMMANDER_LUA_BIN"]?
+    ENV["COMMANDER_LUA_BIN"] = lua.not_nil!
+    begin
+      with_lua_plugin_file(%(
+        commander.command("example.vfs", function(ctx)
+          local action, err = commander.vfs.request("list", "sftp://example.com/home/user")
+          if err ~= nil then
+            commander.status(err.code)
+            return
+          end
+          commander.status(action.operation .. " requested")
+        end)
+      )) do |path|
+        runtime = Commander::LuaPluginRuntime.new(true)
+        request = Commander::PluginRuntimeRequest.new(
+          command_id: "example.vfs",
+          plugin_id: "example",
+          entrypoint_path: path,
+          context: runtime_snapshot_context(plugins: [runtime_plugin_snapshot(["vfs.read:sftp"])])
+        )
+
+        response = runtime.execute(request)
+        response.ok.should be_true
+        response.status_text.should eq("list requested")
+        response.actions.size.should eq(1)
+        response.actions.first.kind.should eq("vfs")
+        response.actions.first.operation.should eq("list")
+        response.actions.first.uri.should eq("sftp://example.com/home/user")
+      end
+    ensure
+      if previous
+        ENV["COMMANDER_LUA_BIN"] = previous
+      else
+        ENV.delete("COMMANDER_LUA_BIN")
+      end
+    end
+  end
 end
