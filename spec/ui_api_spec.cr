@@ -42,6 +42,10 @@ describe Commander::UI do
     view.status_text.should eq("Ready")
     view.command_ids.should eq(["file.view"])
     view.panels.first.selected_entry.not_nil!.name.should eq("README.md")
+    snapshot.panels.first.uri.should eq("file:///tmp")
+    snapshot.panels.first.entries.first.uri.should eq("file:///tmp/README.md")
+    snapshot.to_json.should contain(%("uri":"file:///tmp"))
+    snapshot.to_json.should contain(%("uri":"file:///tmp/README.md"))
   end
 
   it "defines viewer and external view request models without backend dependencies" do

@@ -224,6 +224,7 @@ Definition of Done:
 - `PanelState.load_path` uses `VirtualFS::FileProvider` for local directory stat/list rows
 - `VirtualFS::Registry.default` registers fail-closed ssh/sftp/s3 provider skeletons with no network access
 - Lua plugins can inspect manifest-granted VFS schemes through `commander.vfs.allowed_schemes()`
+- Panel and entry snapshots expose canonical VFS `uri` fields while retaining legacy `path` fields
 - Unsupported schemes fail before I/O with typed `VfsError`
 - Tests cover registry dispatch, unsupported scheme, binary-safe local read, and local mutation operations
 - `crystal spec`, `sh scripts/spec_check`, and `make commander` pass
@@ -239,11 +240,11 @@ Evidence:
 - Routed local panel directory listing through the VFS file provider
 - Added fail-closed remote provider skeletons for ssh/sftp/s3
 - Added Lua VFS allowed-scheme introspection
-- Validation: `crystal spec` passed with 62 examples; `sh scripts/spec_check` passed; `make commander` passed; `sh scripts/commanderctl state` returned JSON
+- Added canonical VFS URI fields to panel/entry snapshots and Lua panel snapshots
+- Validation: `crystal spec` passed with 62 examples; `sh scripts/spec_check` passed; `make clean && make commander` passed; `sh scripts/commanderctl state` returned JSON with `uri` fields
 
 Remaining:
 
-- Panel snapshots still expose local path strings, not canonical VFS URIs
 - PanelState still stores local paths internally instead of `VirtualPath`
 - Offline simulation remains future work
 - Real SSH/SFTP/S3 providers remain future work behind explicit auth/credential boundaries

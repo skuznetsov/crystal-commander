@@ -95,6 +95,7 @@ end)
 - Lua VFS MVP MAY expose `commander.vfs.parse(uri)` when the plugin manifest includes `vfs.read:<scheme>` or `vfs.read:*`.
 - Lua VFS MVP MAY expose `commander.vfs.allowed_schemes()` for manifest-granted scheme introspection.
 - Lua VFS MVP MUST return typed error tables for denied or unsupported schemes.
+- Lua panel and entry snapshots SHOULD expose both legacy `path` and canonical `uri` fields during the VFS migration.
 
 ## Invariants
 
@@ -117,6 +118,7 @@ end)
 - A Lua plugin can read `ctx.panel.selected_entry` and `ctx.panel.entries`.
 - A Lua plugin can parse an allowed VFS URI and receives `PermissionDenied` for a scheme not present in manifest permissions.
 - A Lua plugin can list only its manifest-granted VFS schemes.
+- A Lua plugin can read canonical `ctx.panel.uri` and `ctx.panel.selected_entry.uri` without losing legacy `path` compatibility.
 - Invalid plugin manifests are reported without executing plugin code.
 - Duplicate plugin command IDs are reported before runtime initialization.
 - A failing plugin command returns an error status and leaves the app running.

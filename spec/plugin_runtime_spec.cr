@@ -188,7 +188,7 @@ describe Commander::LuaPluginRuntime do
     begin
       with_lua_plugin_file(%(
         commander.command("example.panel", function(ctx)
-          commander.status(ctx.panel.display_path .. " " .. ctx.panel.selected_entry.name .. " " .. tostring(#ctx.panel.entries))
+          commander.status(ctx.panel.display_path .. " " .. ctx.panel.uri .. " " .. ctx.panel.selected_entry.uri .. " " .. tostring(#ctx.panel.entries))
         end)
       )) do |path|
         runtime = Commander::LuaPluginRuntime.new(true)
@@ -201,7 +201,7 @@ describe Commander::LuaPluginRuntime do
 
         response = runtime.execute(request)
         response.ok.should be_true
-        response.status_text.should eq("~/example alpha.txt 2")
+        response.status_text.should eq("~/example file:///tmp/example file:///tmp/example/alpha.txt 2")
       end
     ensure
       if previous

@@ -20,9 +20,11 @@ module Commander
     getter size : String
     getter modified : String
     getter path : String
+    getter uri : String
     getter flags : UInt32
 
-    def initialize(@name : String, @size : String, @modified : String, @path : String, @flags : UInt32)
+    def initialize(@name : String, @size : String, @modified : String, @path : String, @flags : UInt32, uri : String? = nil)
+      @uri = uri || "file://#{@path}"
     end
   end
 
@@ -31,6 +33,7 @@ module Commander
 
     getter index : Int32
     getter path : String
+    getter uri : String
     getter display_path : String
     getter cursor : Int32
     getter active : Bool
@@ -44,8 +47,10 @@ module Commander
       @cursor : Int32,
       @active : Bool,
       @marked_paths : Array(String),
-      @entries : Array(EntrySnapshot)
+      @entries : Array(EntrySnapshot),
+      uri : String? = nil
     )
+      @uri = uri || "file://#{@path}"
     end
   end
 

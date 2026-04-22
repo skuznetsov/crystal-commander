@@ -58,8 +58,8 @@ Trust: `{F:0.8,G:0.7,R:0.8}` verified through ACP smoke and worker/review runs.
 
 ## LM-8: VirtualFS Phase 0 foundation exists
 
-VirtualFS has a typed URI, URI resolver, provider, registry, and local file provider foundation. Existing local mkdir/copy file operations and local panel directory listing now delegate through the local VFS provider. Lua plugins can parse permitted VFS URIs and inspect permitted schemes. SSH/SFTP/S3 have fail-closed provider skeletons, but real remote provider implementations are not connected yet.
+VirtualFS has a typed URI, URI resolver, provider, registry, and local file provider foundation. Existing local mkdir/copy file operations and local panel directory listing now delegate through the local VFS provider. Panel/entry snapshots expose canonical `uri` fields while retaining legacy `path`. Lua plugins can parse permitted VFS URIs, inspect permitted schemes, and read snapshot URIs. SSH/SFTP/S3 have fail-closed provider skeletons, but real remote provider implementations are not connected yet.
 
 Evidence: `src/virtual_fs.cr`, `spec/virtual_fs_spec.cr`, `docs/specs/VirtualFileSystemSpec.cs.md`.
 
-Trust: `{F:0.8,G:0.6,R:0.8}` `crystal spec` passed with 62 examples, `sh scripts/spec_check` passed, `make commander` passed, and `sh scripts/commanderctl state` returned JSON; canonical URI snapshots remain pending.
+Trust: `{F:0.8,G:0.7,R:0.8}` `crystal spec` passed with 62 examples, `sh scripts/spec_check` passed, `make clean && make commander` passed, and `sh scripts/commanderctl state` returned JSON with `uri` fields; internal PanelState still stores local paths.

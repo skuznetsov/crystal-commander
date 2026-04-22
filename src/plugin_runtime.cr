@@ -244,6 +244,7 @@ module Commander
       {
         index = #{panel.index},
         path = #{lua_string(panel.path)},
+        uri = #{lua_string(panel.uri)},
         display_path = #{lua_string(panel.display_path)},
         cursor = #{panel.cursor},
         active = #{panel.active ? "true" : "false"},
@@ -261,6 +262,7 @@ module Commander
         size = #{lua_string(entry.size)},
         modified = #{lua_string(entry.modified)},
         path = #{lua_string(entry.path)},
+        uri = #{lua_string(entry.uri)},
         flags = #{entry.flags}
       }
       LUA

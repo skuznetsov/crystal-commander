@@ -63,7 +63,8 @@ struct PanelEntry
       size: @size,
       modified: @modified,
       path: @path,
-      flags: @flags
+      flags: @flags,
+      uri: Commander::VirtualFS::VirtualPath.parse(@path).to_uri
     )
   end
 end
@@ -227,7 +228,8 @@ class PanelState
       cursor: @cursor,
       active: active,
       marked_paths: @marked_paths.to_a,
-      entries: @entries.map(&.to_snapshot)
+      entries: @entries.map(&.to_snapshot),
+      uri: Commander::VirtualFS::VirtualPath.parse(@path).to_uri
     )
   end
 
