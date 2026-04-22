@@ -513,6 +513,10 @@ class CommanderApp
       end
     end
 
+    @commands.register("vfs.execute_pending_action", "Execute pending VFS action", "Execute the first pending read-only plugin VFS action") do |_ctx|
+      execute_pending_vfs_action
+    end
+
     @commands.register("app.quit", "Quit", "Stop the commander application") do |_ctx|
       @running = false
       renderer_stop
@@ -1030,6 +1034,53 @@ class CommanderApp
     update_status("VFS probe failed: #{ex.vfs_error.message}")
   rescue ex : ArgumentError
     update_status("VFS probe failed: #{ex.message || ex.class.name}")
+  end
+
+  private def execute_pending_vfs_action : Nil
+    action = @plugin_actions.first?
+    unless action
+      update_status("No pending plugin VFS action")
+      return
+    end
+
+    unless action.kind == "vfs"
+      update_status("Unsupported plugin action kind: #{action.kind}")
+      return
+    end
+
+    operation = read_only_vfs_operation(action.operation)
+    unless operation
+      update_status("Plugin VFS action requires policy: #{action.operation}")
+      return
+    end
+
+    path = Commander::VirtualFS::VirtualPath.parse(action.uri)
+    response = Commander::VirtualFS::Registry.default.dispatch(
+      Commander::VirtualFS::Request.new(operation, path)
+    )
+
+    if response.ok
+      suffix = operation == Commander::VirtualFS::Operation::List ? "#{response.entries.size} entries" : "ok"
+      update_status("Plugin VFS action #{action.operation} #{path.to_uri}: #{suffix}")
+    else
+      error = response.error
+      update_status("Plugin VFS action failed: #{error.try(&.message) || "unknown VFS error"}")
+    end
+  rescue ex : Commander::VirtualFS::VfsException
+    update_status("Plugin VFS action failed: #{ex.vfs_error.message}")
+  rescue ex : ArgumentError
+    update_status("Plugin VFS action failed: #{ex.message || ex.class.name}")
+  end
+
+  private def read_only_vfs_operation(value : String) : Commander::VirtualFS::Operation?
+    case value
+    when "stat"
+      Commander::VirtualFS::Operation::Stat
+    when "list"
+      Commander::VirtualFS::Operation::List
+    else
+      nil
+    end
   end
 
   private def activate_row(panel_index : Int32, row : Int32) : Nil

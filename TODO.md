@@ -229,6 +229,7 @@ Definition of Done:
 - Lua plugins can declare VFS request intent actions without executing provider I/O
 - App snapshots expose pending plugin VFS actions for automation/debug layers
 - `vfs.probe_uri` probes URIs through the VFS registry without mutating panels
+- `vfs.execute_pending_action` executes the first pending read-only plugin VFS action (`stat`/`list`) through the registry
 - Unsupported schemes fail before I/O with typed `VfsError`
 - Tests cover registry dispatch, unsupported scheme, binary-safe local read, and local mutation operations
 - `crystal spec`, `sh scripts/spec_check`, and `make commander` pass
@@ -249,11 +250,13 @@ Evidence:
 - Added Lua VFS request intent actions in `PluginRuntimeResponse`
 - Added app snapshot exposure for pending plugin VFS actions
 - Added headless VFS probe command for automation/debug use
-- Validation: `crystal spec` passed with 63 examples; `sh scripts/spec_check` passed; `make clean && make commander` passed; `sh scripts/commanderctl state` returned JSON with `uri` fields; temporary Lua plugin command returned one pending VFS action; `vfs.probe_uri` succeeded for file URI and failed closed for s3 URI
+- Added read-only pending plugin VFS action executor command
+- Validation: `crystal spec` passed with 63 examples; `sh scripts/spec_check` passed; `make clean && make commander` passed; `sh scripts/commanderctl state` returned JSON with `uri` fields; temporary Lua plugin command returned one pending VFS action; `vfs.probe_uri` succeeded for file URI and failed closed for s3 URI; `vfs.execute_pending_action` reports no action when none is pending
 
 Remaining:
 
 - PanelState still stores local paths internally instead of `VirtualPath`
 - Offline simulation remains future work
 - Real SSH/SFTP/S3 providers remain future work behind explicit auth/credential boundaries
+- Stateful automation/socket smoke is needed to verify executing a plugin-produced action in the same process
 - `open_stream` intentionally returns `UnsupportedOperation` until stream ownership is specified
