@@ -66,11 +66,11 @@ Trust: `{F:0.8,G:0.7,R:0.8}` `crystal spec` passed with 69 examples, `sh scripts
 
 ## LM-9: Tabs are Crystal-owned workspace state
 
-Commander has a Crystal-owned tab model with independent panel arrays, per-tab active panel state, tab rename support, and per-tab panel count changes. The renderer tab bar is not implemented yet, and native renderer panel layout still matches the launch-time renderer panel count.
+Commander has a Crystal-owned tab model with independent panel arrays, per-tab active panel state, tab rename support, per-tab panel count changes, and native renderer tab-bar sync for title, active state, and panel count. Tab click events are not wired yet, and native renderer panel layout still matches the launch-time renderer panel count.
 
 Evidence: `src/commander.cr`, `src/snapshots.cr`, `specs/TabsSpec.cs.md`.
 
-Trust: `{F:0.8,G:0.6,R:0.8}` `crystal spec` passed with 71 examples, `sh scripts/spec_check` passed, `make commander` passed, `scripts/tabs_smoke` passed, `scripts/vfs_smoke` passed, and tabs smoke preserved different panel URIs across two tabs, verified rename, verified close, verified per-tab panel count independence, and verified the last-tab guard.
+Trust: `{F:0.8,G:0.6,R:0.8}` `crystal spec` passed with 73 examples, `sh scripts/spec_check` passed, `make commander` passed, `scripts/tabs_smoke` passed, `scripts/vfs_smoke` passed, native renderer tab-bar C ABI compiled, and tabs smoke preserved different panel URIs across two tabs, verified rename, verified close, verified per-tab panel count independence, and verified the last-tab guard.
 
 ## LM-10: Backend-neutral UI draw frame exists
 

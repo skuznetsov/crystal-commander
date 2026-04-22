@@ -32,6 +32,12 @@ typedef struct commander_render_row {
   uint32_t flags;
 } commander_render_row_t;
 
+typedef struct commander_render_tab {
+  const char *title;
+  int32_t active;
+  int32_t panel_count;
+} commander_render_tab_t;
+
 typedef struct commander_render_event {
   int32_t type;
   int32_t panel;
@@ -55,6 +61,7 @@ int32_t commander_renderer_poll_event(void *handle, commander_render_event_t *ou
 
 void commander_renderer_set_active_panel(void *handle, int32_t panel_index);
 void commander_renderer_set_status_text(void *handle, const char *text);
+void commander_renderer_set_tab_bar(void *handle, const commander_render_tab_t *tabs, int32_t tab_count);
 void commander_renderer_set_panel_path(void *handle, int32_t panel_index, const char *path);
 void commander_renderer_set_panel_rows(void *handle, int32_t panel_index, const commander_render_row_t *rows, int32_t row_count, int32_t cursor);
 void commander_renderer_set_panel_cursor(void *handle, int32_t panel_index, int32_t selected_index);

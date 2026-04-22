@@ -23,6 +23,12 @@ module Commander
       flags : UInt32
     end
 
+    struct RenderTab
+      title : UInt8*
+      active : Int32
+      panel_count : Int32
+    end
+
     struct RenderEvent
       type : Int32
       panel : Int32
@@ -43,6 +49,7 @@ module Commander
     fun commander_renderer_poll_event(handle : Void*, out_event : RenderEvent*) : Int32
     fun commander_renderer_set_active_panel(handle : Void*, panel_index : Int32) : Void
     fun commander_renderer_set_status_text(handle : Void*, text : UInt8*) : Void
+    fun commander_renderer_set_tab_bar(handle : Void*, tabs : RenderTab*, tab_count : Int32) : Void
     fun commander_renderer_set_panel_path(handle : Void*, panel_index : Int32, path : UInt8*) : Void
     fun commander_renderer_set_panel_rows(handle : Void*, panel_index : Int32, rows : RenderRow*, row_count : Int32, cursor : Int32) : Void
     fun commander_renderer_set_panel_cursor(handle : Void*, panel_index : Int32, selected_index : Int32) : Void
@@ -124,6 +131,26 @@ module Commander
     def set_status_text(text : String) : Nil
       return if @destroyed
       LibRenderer.commander_renderer_set_status_text(@handle, text.to_unsafe)
+    end
+
+    def set_tab_bar(tabs : Array({String, Bool, Int32})) : Nil
+      return if @destroyed
+
+      if tabs.empty?
+        LibRenderer.commander_renderer_set_tab_bar(@handle, Pointer(LibRenderer::RenderTab).null, 0)
+        return
+      end
+
+      titles = tabs.map(&.[0])
+      native = tabs.map_with_index do |tab, idx|
+        native_tab = LibRenderer::RenderTab.new
+        native_tab.title = titles[idx].to_unsafe
+        native_tab.active = tab[1] ? 1 : 0
+        native_tab.panel_count = tab[2]
+        native_tab
+      end
+
+      LibRenderer.commander_renderer_set_tab_bar(@handle, native.to_unsafe, native.size.to_i32)
     end
 
     def set_panel_path(panel_index : Int32, path : String) : Nil

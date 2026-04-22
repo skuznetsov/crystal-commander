@@ -381,6 +381,7 @@ class CommanderApp
       raise "renderer window creation failed"
     end
 
+    sync_tabs
     sync_all
     set_active_panel(0)
     report_plugin_manifest_status
@@ -788,6 +789,7 @@ class CommanderApp
     @active_panel = 0
     @panel_count = @panels.size
     sync_all
+    sync_tabs
     set_active_panel(0)
     update_status("Tab #{@active_tab + 1}: #{@tabs[@active_tab].title}")
   end
@@ -802,6 +804,7 @@ class CommanderApp
     @active_tab = wrapped
     restore_active_tab_state
     sync_all
+    sync_tabs
     set_active_panel(@active_panel)
     update_status("Tab #{@active_tab + 1}: #{@tabs[@active_tab].title}")
   end
@@ -816,6 +819,7 @@ class CommanderApp
     @active_tab = @tabs.size - 1 if @active_tab >= @tabs.size
     restore_active_tab_state
     sync_all
+    sync_tabs
     set_active_panel(@active_panel)
     update_status("Closed tab; active tab #{@active_tab + 1}")
   end
@@ -828,6 +832,7 @@ class CommanderApp
     end
 
     @tabs[@active_tab].title = clean_title
+    sync_tabs
     update_status("Tab #{@active_tab + 1} renamed: #{clean_title}")
   end
 
@@ -848,6 +853,7 @@ class CommanderApp
     @tabs[@active_tab].panels = @panels
     @tabs[@active_tab].active_panel = @active_panel
     sync_all
+    sync_tabs
     set_active_panel(@active_panel)
     update_status("Tab #{@active_tab + 1} panel count: #{@panel_count}")
   end
@@ -1283,6 +1289,10 @@ class CommanderApp
       sync_panel(idx.to_i32)
     end
     refresh_status_for_active
+  end
+
+  private def sync_tabs : Nil
+    @renderer.try(&.set_tab_bar(@tabs.map_with_index { |tab, index| {tab.title, index == @active_tab, tab.panels.size} }))
   end
 
   private def sync_panel(panel_index : Int32) : Nil

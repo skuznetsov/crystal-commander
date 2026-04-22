@@ -61,11 +61,14 @@ static uint32_t commander_normalize_modifiers(NSEventModifierFlags flags)
 @property (nonatomic, strong) NSMutableArray<CommanderPanel *> *panels;
 @property (nonatomic, strong) NSMutableArray<NSValue *> *eventQueue;
 @property (nonatomic, strong) NSTextField *statusLabel;
+@property (nonatomic, strong) NSView *tabBar;
+@property (nonatomic, strong) NSMutableArray<NSTextField *> *tabLabels;
 - (instancetype)initWithPanelCount:(NSInteger)panelCount width:(CGFloat)width height:(CGFloat)height;
 - (void)pushEvent:(commander_render_event_t)event;
 - (BOOL)popEvent:(commander_render_event_t *)outEvent;
 - (void)focusPanel:(NSInteger)index;
 - (void)focusNextPanel;
+- (void)setTabsFromC:(const commander_render_tab_t *)tabs count:(NSInteger)count;
 - (void)requestStop;
 @end
 
@@ -142,6 +145,7 @@ static CommanderRuntime *runtime_from_handle(void *handle);
         _allowClose = NO;
         _panels = [NSMutableArray arrayWithCapacity:_panelCount];
         _eventQueue = [NSMutableArray array];
+        _tabLabels = [NSMutableArray array];
     }
     return self;
 }
@@ -196,6 +200,51 @@ static CommanderRuntime *runtime_from_handle(void *handle);
 - (void)focusNextPanel
 {
     [self focusPanel:self.activePanel + 1];
+}
+
+- (void)setTabsFromC:(const commander_render_tab_t *)tabs count:(NSInteger)count
+{
+    if (!self.tabBar) {
+        return;
+    }
+
+    for (NSTextField *label in self.tabLabels) {
+        [label removeFromSuperview];
+    }
+    [self.tabLabels removeAllObjects];
+
+    if (!tabs || count <= 0) {
+        return;
+    }
+
+    CGFloat x = 10.0;
+    CGFloat maxX = self.tabBar.bounds.size.width - 10.0;
+    for (NSInteger i = 0; i < count && x < maxX; i++) {
+        NSString *title = str_from_c(tabs[i].title);
+        if (title.length == 0) {
+            title = [NSString stringWithFormat:@"Tab %ld", (long)i + 1];
+        }
+        NSString *labelText = tabs[i].panel_count > 0
+            ? [NSString stringWithFormat:@"%@  %dP", title, tabs[i].panel_count]
+            : title;
+        CGFloat width = MIN(MAX(110.0, (CGFloat)labelText.length * 8.5 + 24.0), maxX - x);
+        if (width <= 0.0) {
+            break;
+        }
+
+        NSTextField *label = mc_label(NSMakeRect(x, 2.0, width, self.tabBar.bounds.size.height - 4.0),
+                                      labelText,
+                                      tabs[i].active ? NSColor.blackColor : mc_white(),
+                                      [NSFont fontWithName:@"Menlo-Bold" size:12] ?: [NSFont boldSystemFontOfSize:12],
+                                      NSTextAlignmentLeft);
+        label.identifier = [NSString stringWithFormat:@"commander.tab.%ld", (long)i];
+        label.wantsLayer = YES;
+        label.layer.backgroundColor = tabs[i].active ? mc_cyan().CGColor : mc_blue_dark().CGColor;
+        label.layer.cornerRadius = 3.0;
+        [self.tabBar addSubview:label];
+        [self.tabLabels addObject:label];
+        x += width + 6.0;
+    }
 }
 
 - (void)requestStop
@@ -1192,10 +1241,11 @@ static void build_window_if_needed(CommanderRuntime *runtime)
     content.layer.backgroundColor = mc_blue_dark().CGColor;
 
     const CGFloat topBarHeight = 24.0;
+    const CGFloat tabBarHeight = 26.0;
     const CGFloat commandBarHeight = 24.0;
     const CGFloat keyBarHeight = 24.0;
     const CGFloat panelBottom = commandBarHeight + keyBarHeight + 8.0;
-    const CGFloat panelTop = runtime.height - topBarHeight - 8.0;
+    const CGFloat panelTop = runtime.height - topBarHeight - tabBarHeight - 8.0;
     CGFloat panelHeight = panelTop - panelBottom;
     if (panelHeight < 260.0) {
         panelHeight = 260.0;
@@ -1218,6 +1268,13 @@ static void build_window_if_needed(CommanderRuntime *runtime)
         [topBar addSubview:menuLabel];
         topX += 104.0;
     }
+
+    NSView *tabBar = [[NSView alloc] initWithFrame:NSMakeRect(0, runtime.height - topBarHeight - tabBarHeight, runtime.width, tabBarHeight)];
+    tabBar.identifier = @"commander.tabBar";
+    tabBar.wantsLayer = YES;
+    tabBar.layer.backgroundColor = mc_blue_dark().CGColor;
+    [content addSubview:tabBar];
+    runtime.tabBar = tabBar;
 
     NSView *commandBar = [[NSView alloc] initWithFrame:NSMakeRect(0, keyBarHeight, runtime.width, commandBarHeight)];
     commandBar.identifier = @"commander.commandBar";
@@ -1388,6 +1445,20 @@ extern "C" void commander_renderer_set_status_text(void *handle, const char *tex
             return;
         }
         runtime.statusLabel.stringValue = str_from_c(text);
+    }
+}
+
+extern "C" void commander_renderer_set_tab_bar(void *handle, const commander_render_tab_t *tabs, int32_t tab_count)
+{
+    @autoreleasepool {
+        CommanderRuntime *runtime = runtime_from_handle(handle);
+        if (!runtime || !runtime.shown) {
+            return;
+        }
+        if (tab_count < 0) {
+            tab_count = 0;
+        }
+        [runtime setTabsFromC:tabs count:tab_count];
     }
 }
 
