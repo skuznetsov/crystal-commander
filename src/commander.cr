@@ -504,6 +504,15 @@ class CommanderApp
       end
     end
 
+    @commands.register("vfs.probe_uri", "Probe VFS URI", "Probe a URI through the VirtualFS registry without changing panels") do |ctx|
+      uri = ctx.argument
+      if uri && !uri.empty?
+        probe_vfs_uri(uri)
+      else
+        update_status("VFS probe requires COMMANDER_COMMAND_ARG")
+      end
+    end
+
     @commands.register("app.quit", "Quit", "Stop the commander application") do |_ctx|
       @running = false
       renderer_stop
@@ -1001,6 +1010,26 @@ class CommanderApp
     update_status("Open URI failed: #{ex.vfs_error.message}")
   rescue ex : ArgumentError
     update_status("Open URI failed: #{ex.message || ex.class.name}")
+  end
+
+  private def probe_vfs_uri(uri : String) : Nil
+    path = Commander::VirtualFS::VirtualPath.parse(uri)
+    operation = path.local? ? Commander::VirtualFS::Operation::Stat : Commander::VirtualFS::Operation::List
+    response = Commander::VirtualFS::Registry.default.dispatch(
+      Commander::VirtualFS::Request.new(operation, path)
+    )
+
+    if response.ok
+      suffix = operation == Commander::VirtualFS::Operation::List ? "#{response.entries.size} entries" : "ok"
+      update_status("VFS probe #{path.to_uri}: #{suffix}")
+    else
+      error = response.error
+      update_status("VFS probe failed: #{error.try(&.message) || "unknown VFS error"}")
+    end
+  rescue ex : Commander::VirtualFS::VfsException
+    update_status("VFS probe failed: #{ex.vfs_error.message}")
+  rescue ex : ArgumentError
+    update_status("VFS probe failed: #{ex.message || ex.class.name}")
   end
 
   private def activate_row(panel_index : Int32, row : Int32) : Nil
