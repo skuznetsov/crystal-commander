@@ -48,9 +48,11 @@ struct PanelEntry
   getter size : String
   getter modified : String
   getter path : String
+  getter uri : String
   getter flags : UInt32
 
-  def initialize(@name : String, @size : String, @modified : String, @path : String, @flags : UInt32)
+  def initialize(@name : String, @size : String, @modified : String, @path : String, @flags : UInt32, uri : String? = nil)
+    @uri = uri || Commander::VirtualFS::VirtualPath.parse(@path).to_uri
   end
 
   def directory? : Bool
@@ -64,7 +66,7 @@ struct PanelEntry
       modified: @modified,
       path: @path,
       flags: @flags,
-      uri: Commander::VirtualFS::VirtualPath.parse(@path).to_uri
+      uri: @uri
     )
   end
 end
@@ -73,12 +75,14 @@ class PanelState
   record ReturnOffset, parent_path : String, child_path : String, cursor : Int32
 
   getter path : String
+  getter location : Commander::VirtualFS::VirtualPath
   getter entries : Array(PanelEntry)
   getter marked_paths : Set(String)
   property cursor : Int32
 
   def initialize(start_path : String)
     @path = start_path
+    @location = Commander::VirtualFS::VirtualPath.parse(start_path)
     @entries = [] of PanelEntry
     @marked_paths = Set(String).new
     @return_offsets = [] of ReturnOffset
@@ -88,12 +92,14 @@ class PanelState
 
   def load_path(path : String) : Nil
     provider = Commander::VirtualFS::FileProvider.new
-    normalized = File.expand_path(path)
+    requested = Commander::VirtualFS::VirtualPath.parse(path)
+    normalized = requested.local? ? File.expand_path(requested.path) : home_dir
     stat = provider.stat(Commander::VirtualFS::VirtualPath.parse(normalized))
     stat_entry = stat.entries.first?
     normalized = home_dir unless stat.ok && stat_entry && stat_entry.kind == Commander::VirtualFS::EntryKind::Directory
 
     @path = normalized
+    @location = Commander::VirtualFS::VirtualPath.parse(normalized)
     @entries.clear
 
     parent = File.dirname(@path)
@@ -103,7 +109,8 @@ class PanelState
         size: "UP--DIR",
         modified: Time.local.to_s("%b %-d %H:%M"),
         path: parent,
-        flags: Commander::ROW_FLAG_DIRECTORY | Commander::ROW_FLAG_PARENT
+        flags: Commander::ROW_FLAG_DIRECTORY | Commander::ROW_FLAG_PARENT,
+        uri: Commander::VirtualFS::VirtualPath.parse(parent).to_uri
       )
     end
 
@@ -131,7 +138,8 @@ class PanelState
         size: directory ? "<DIR>" : format_size(entry.size || 0_i64),
         modified: entry.modified_at.try(&.to_local.to_s("%b %-d %H:%M")) || "",
         path: entry.path.path,
-        flags: flags
+        flags: flags,
+        uri: entry.path.to_uri
       )
     end
 
@@ -229,7 +237,7 @@ class PanelState
       active: active,
       marked_paths: @marked_paths.to_a,
       entries: @entries.map(&.to_snapshot),
-      uri: Commander::VirtualFS::VirtualPath.parse(@path).to_uri
+      uri: @location.to_uri
     )
   end
 

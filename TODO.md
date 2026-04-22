@@ -225,6 +225,7 @@ Definition of Done:
 - `VirtualFS::Registry.default` registers fail-closed ssh/sftp/s3 provider skeletons with no network access
 - Lua plugins can inspect manifest-granted VFS schemes through `commander.vfs.allowed_schemes()`
 - Panel and entry snapshots expose canonical VFS `uri` fields while retaining legacy `path` fields
+- `PanelState` stores a canonical `VirtualPath` location and panel entries store canonical URIs
 - `panel.open_path` accepts `file://` URIs and fail-closed remote URIs without network access
 - Lua plugins can declare VFS request intent actions without executing provider I/O
 - App snapshots expose pending plugin VFS actions for automation/debug layers
@@ -251,6 +252,7 @@ Evidence:
 - Added fail-closed remote provider skeletons for ssh/sftp/s3
 - Added Lua VFS allowed-scheme introspection
 - Added canonical VFS URI fields to panel/entry snapshots and Lua panel snapshots
+- Added canonical `VirtualPath` storage to panel state and stable entry URIs
 - Added URI-aware `panel.open_path` behavior for local file URIs and fail-closed remote URI probes
 - Added Lua VFS request intent actions in `PluginRuntimeResponse`
 - Added app snapshot exposure for pending plugin VFS actions
@@ -265,6 +267,5 @@ Evidence:
 
 Remaining:
 
-- PanelState still stores local paths internally instead of `VirtualPath`
 - Real SSH/SFTP/S3 providers remain future work behind explicit auth/credential boundaries
 - `open_stream` intentionally returns `UnsupportedOperation` until stream ownership is specified
