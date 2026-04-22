@@ -139,6 +139,7 @@ FileInfo and error types are stable across providers. list and stat populate pro
 - Lua plugins MUST access VFS only through Commander-mediated APIs, never by loading SSH/S3 libraries directly.
 - The current Lua VFS increment exposes permission-gated URI parsing only:
   - `commander.vfs.parse(uri)`
+  - `commander.vfs.allowed_schemes()`
 - The next Lua VFS surface SHOULD be read-only and permission-gated:
   - `commander.vfs.stat(uri)`
   - `commander.vfs.list(uri)`
@@ -146,6 +147,7 @@ FileInfo and error types are stable across providers. list and stat populate pro
   - `commander.vfs.mount(alias, uri)`
 - `commander.vfs.parse(uri)` MUST return either a copied URI table (`scheme`, `authority`, `path`, `uri`) or a typed error table.
 - `commander.vfs.parse(uri)` MUST require `vfs.read:<scheme>` or `vfs.read:*` before returning URI metadata for that scheme.
+- `commander.vfs.allowed_schemes()` MUST return only schemes granted by the plugin manifest.
 - Mutating Lua VFS operations (`write`, `mkdir`, `delete`, `rename`, `copy`) MUST require manifest permissions and Commander confirmation policy.
 - Lua VFS results MUST be copied snapshots or JSON-like tables; Lua MUST NOT receive provider handles, raw streams, credentials, or AppKit/C ABI pointers.
 - Lua VFS calls MUST return typed error tables with VfsError codes, not raw exception messages.

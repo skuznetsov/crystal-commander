@@ -132,6 +132,15 @@ module Commander
 
       commander.vfs = {}
 
+      function commander.vfs.allowed_schemes()
+        local schemes = {}
+        for scheme, _ in pairs(__vfs_allowed) do
+          table.insert(schemes, scheme)
+        end
+        table.sort(schemes)
+        return schemes
+      end
+
       function commander.vfs.parse(uri)
         local value = tostring(uri or "")
         local scheme, rest = string.match(value, "^([%w%+%-%.]+)://(.*)$")

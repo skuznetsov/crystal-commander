@@ -283,4 +283,37 @@ describe Commander::LuaPluginRuntime do
       end
     end
   end
+
+  it "exposes allowed VFS schemes to Lua commands" do
+    lua = find_lua_binary
+    pending! "Lua executable not available" unless lua
+
+    previous = ENV["COMMANDER_LUA_BIN"]?
+    ENV["COMMANDER_LUA_BIN"] = lua.not_nil!
+    begin
+      with_lua_plugin_file(%(
+        commander.command("example.vfs", function(ctx)
+          commander.status(table.concat(commander.vfs.allowed_schemes(), ","))
+        end)
+      )) do |path|
+        runtime = Commander::LuaPluginRuntime.new(true)
+        request = Commander::PluginRuntimeRequest.new(
+          command_id: "example.vfs",
+          plugin_id: "example",
+          entrypoint_path: path,
+          context: runtime_snapshot_context(plugins: [runtime_plugin_snapshot(["vfs.read:s3", "vfs.read:file"])])
+        )
+
+        response = runtime.execute(request)
+        response.ok.should be_true
+        response.status_text.should eq("file,s3")
+      end
+    ensure
+      if previous
+        ENV["COMMANDER_LUA_BIN"] = previous
+      else
+        ENV.delete("COMMANDER_LUA_BIN")
+      end
+    end
+  end
 end

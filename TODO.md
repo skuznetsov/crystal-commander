@@ -223,6 +223,7 @@ Definition of Done:
 - Existing `Commander::FileOperations.mkdir` and `copy_file` delegate local mutations through `VirtualFS::FileProvider`
 - `PanelState.load_path` uses `VirtualFS::FileProvider` for local directory stat/list rows
 - `VirtualFS::Registry.default` registers fail-closed ssh/sftp/s3 provider skeletons with no network access
+- Lua plugins can inspect manifest-granted VFS schemes through `commander.vfs.allowed_schemes()`
 - Unsupported schemes fail before I/O with typed `VfsError`
 - Tests cover registry dispatch, unsupported scheme, binary-safe local read, and local mutation operations
 - `crystal spec`, `sh scripts/spec_check`, and `make commander` pass
@@ -237,7 +238,8 @@ Evidence:
 - Routed existing local mkdir/copy commands through the VFS file provider
 - Routed local panel directory listing through the VFS file provider
 - Added fail-closed remote provider skeletons for ssh/sftp/s3
-- Validation: `crystal spec` passed with 61 examples; `sh scripts/spec_check` passed; `make commander` passed; `sh scripts/commanderctl state` returned JSON
+- Added Lua VFS allowed-scheme introspection
+- Validation: `crystal spec` passed with 62 examples; `sh scripts/spec_check` passed; `make commander` passed; `sh scripts/commanderctl state` returned JSON
 
 Remaining:
 
