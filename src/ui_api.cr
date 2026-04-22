@@ -156,6 +156,124 @@ module Commander
       end
     end
 
+    struct TerminalCell
+      getter char : Char
+      getter foreground : String?
+      getter background : String?
+      getter style : String?
+
+      def initialize(@char : Char = ' ', @foreground : String? = nil, @background : String? = nil, @style : String? = nil)
+      end
+    end
+
+    class TerminalGridBackend < Backend
+      getter width : Int32
+      getter height : Int32
+      getter cells : Array(Array(TerminalCell))
+
+      def initialize(@width : Int32, @height : Int32, name : String = "terminal-grid", theme : Theme = Theme.new, events : Array(UIEvent) = [] of UIEvent)
+        super(name, theme)
+        @events = events
+        @cells = Array(Array(TerminalCell)).new(@height) { Array(TerminalCell).new(@width) { TerminalCell.new } }
+      end
+
+      def draw(commands : Array(DrawCommand)) : Nil
+        clear
+        commands.each { |command| apply(command) }
+      end
+
+      def poll_event : UIEvent?
+        @events.shift?
+      end
+
+      def rendered_lines : Array(String)
+        @cells.map { |row| row.map(&.char).join.rstrip }
+      end
+
+      private def clear : Nil
+        @height.times do |y|
+          @width.times do |x|
+            @cells[y][x] = TerminalCell.new
+          end
+        end
+      end
+
+      private def apply(command : DrawCommand) : Nil
+        rect = command.rect
+        return unless rect
+
+        case command.kind
+        when DrawKind::FillRect
+          fill(rect, ' ', background: command.color, style: command.style)
+        when DrawKind::StrokeRect
+          stroke(rect, foreground: command.color, style: command.style)
+        when DrawKind::Text
+          write_text(rect, command.text || "", foreground: command.color, style: command.style)
+        when DrawKind::Line
+          fill(rect, rect.width == 1 ? '|' : '-', foreground: command.color, style: command.style)
+        when DrawKind::Clip, DrawKind::Image
+          nil
+        end
+      end
+
+      private def fill(rect : Rect, char : Char, foreground : String? = nil, background : String? = nil, style : String? = nil) : Nil
+        each_cell(rect) do |x, y|
+          @cells[y][x] = TerminalCell.new(char, foreground, background, style)
+        end
+      end
+
+      private def stroke(rect : Rect, foreground : String? = nil, style : String? = nil) : Nil
+        return if rect.width <= 0 || rect.height <= 0
+
+        right = rect.x + rect.width - 1
+        bottom = rect.y + rect.height - 1
+        each_cell(rect) do |x, y|
+          next unless x == rect.x || x == right || y == rect.y || y == bottom
+
+          char = if (x == rect.x || x == right) && (y == rect.y || y == bottom)
+                   '+'
+                 elsif y == rect.y || y == bottom
+                   '-'
+                 else
+                   '|'
+                 end
+          @cells[y][x] = TerminalCell.new(char, foreground, nil, style)
+        end
+      end
+
+      private def write_text(rect : Rect, text : String, foreground : String? = nil, style : String? = nil) : Nil
+        return if rect.width <= 0 || rect.height <= 0
+
+        y = rect.y
+        return if y < 0 || y >= @height
+
+        text.each_char.first(rect.width).each_with_index do |char, idx|
+          x = rect.x + idx
+          next if x < 0 || x >= @width
+
+          @cells[y][x] = TerminalCell.new(char, foreground, nil, style)
+        end
+      end
+
+      private def each_cell(rect : Rect, &block : Int32, Int32 -> Nil) : Nil
+        start_x = Math.max(0, rect.x)
+        start_y = Math.max(0, rect.y)
+        end_x = Math.min(@width, rect.x + rect.width)
+        end_y = Math.min(@height, rect.y + rect.height)
+        return if start_x >= end_x || start_y >= end_y
+
+        y = start_y
+        while y < end_y
+          x = start_x
+          while x < end_x
+            yield x, y
+            x += 1
+          end
+          y += 1
+        end
+      end
+    end
+
     struct RenderContext
       getter theme : Theme
 

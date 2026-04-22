@@ -204,6 +204,63 @@ describe Commander::UI do
     frame.commands.map(&.style).should contain("file-panel-0.list.selection")
   end
 
+  it "renders draw frames into a terminal grid backend without changing the widget stream" do
+    entry = Commander::EntrySnapshot.new(
+      name: "README.md",
+      size: "1K",
+      modified: "Apr 21 22:00",
+      path: "/tmp/README.md",
+      flags: 0_u32
+    )
+    panel = Commander::PanelSnapshot.new(
+      index: 0,
+      path: "/tmp",
+      display_path: "/tmp",
+      cursor: 0,
+      active: true,
+      marked_paths: [] of String,
+      entries: [entry]
+    )
+    tab = Commander::TabSnapshot.new(
+      index: 0,
+      title: "Main",
+      active: true,
+      panel_count: 1,
+      active_panel: 0,
+      panel_uris: ["file:///tmp"]
+    )
+    snapshot = Commander::AppSnapshot.new(
+      active_panel: 0,
+      panel_count: 1,
+      running: true,
+      status_text: "Ready",
+      dry_run: false,
+      plugin_root: "plugins",
+      plugins: [] of Commander::PluginSnapshot,
+      plugin_runtimes: [] of Commander::PluginRuntimeSnapshot,
+      plugin_errors: [] of String,
+      commands: [] of Commander::CommandSnapshot,
+      pending_operation: nil,
+      preview: nil,
+      external_view: nil,
+      panels: [panel],
+      active_tab: 0,
+      tabs: [tab]
+    )
+
+    frame = Commander::UI::WorkspaceRenderer.render(Commander::UI.workspace(snapshot), Commander::UI::Rect.new(0, 0, 60, 14))
+    recording = Commander::UI::RecordingBackend.new("appkit-stub")
+    terminal = Commander::UI::TerminalGridBackend.new(60, 14)
+
+    recording.draw(frame)
+    terminal.draw(frame)
+
+    recording.last_commands.should eq(frame.commands)
+    terminal.rendered_lines.join("\n").should contain("README.md")
+    terminal.rendered_lines.join("\n").should contain("[Main]")
+    terminal.cells.flatten.any? { |cell| cell.background == frame.theme.selection }.should be_true
+  end
+
   it "projects external viewer requests from app snapshots" do
     external_view = Commander::ExternalViewSnapshot.new("/tmp/README.md", true, nil)
     snapshot = Commander::AppSnapshot.new(

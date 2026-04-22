@@ -136,12 +136,14 @@ Evidence:
 - Added retained `Widget`, `Label`, `ListView`, `Split`, `TabBar`, `FilePanelWidget`, `StatusBar`, and `WorkspaceWidget`
 - Routed file panel rows through the generic `ListView` widget while keeping file-manager state in Crystal snapshots
 - Added specs proving the retained workspace widget tree renders tabs, split panels, list rows, and selection styles
-- Validation: `crystal spec` passed with 72 examples; `sh scripts/spec_check` passed; `make commander` passed; `scripts/tabs_smoke` passed; `scripts/vfs_smoke` passed
+- Added `TerminalGridBackend` to adapt `DrawFrame` commands into a deterministic terminal cell grid
+- Added specs proving the same widget stream renders through both recording and terminal-grid backends
+- Validation: `crystal spec` passed with 73 examples; `sh scripts/spec_check` passed; `make commander` passed; `scripts/tabs_smoke` passed; `scripts/vfs_smoke` passed
 
 Remaining:
 
 - AppKit renderer still consumes the existing C ABI state directly instead of `DrawFrame`
-- Terminal backend adapter is not implemented yet
+- Interactive terminal TTY backend is not implemented yet; current terminal adapter is a deterministic grid backend for tests/smokes
 - Runtime theme switching remains future work
 
 ## 8. Add top-level workspace tabs
