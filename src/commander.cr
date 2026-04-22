@@ -8,6 +8,7 @@ require "./file_operations"
 require "./file_preview"
 require "./ui_api"
 require "./automation_server"
+require "./virtual_fs"
 
 def home_dir : String
   ENV["HOME"]? || "/"
@@ -85,8 +86,11 @@ class PanelState
   end
 
   def load_path(path : String) : Nil
+    provider = Commander::VirtualFS::FileProvider.new
     normalized = File.expand_path(path)
-    normalized = home_dir unless Dir.exists?(normalized)
+    stat = provider.stat(Commander::VirtualFS::VirtualPath.parse(normalized))
+    stat_entry = stat.entries.first?
+    normalized = home_dir unless stat.ok && stat_entry && stat_entry.kind == Commander::VirtualFS::EntryKind::Directory
 
     @path = normalized
     @entries.clear
@@ -102,40 +106,32 @@ class PanelState
       )
     end
 
-    rows = [] of PanelEntry
-    begin
-      Dir.each_child(@path) do |name|
-        full_path = File.join(@path, name)
-        begin
-          info = File.info(full_path, follow_symlinks: false)
-          directory = info.directory?
-          executable = !directory && (info.permissions.value & 0o111) != 0
+    list = provider.list(Commander::VirtualFS::VirtualPath.parse(@path))
+    rows = list.entries.map do |entry|
+      directory = entry.kind == Commander::VirtualFS::EntryKind::Directory
+      permissions = entry.permissions
+      executable = false
+      executable = (permissions & 0o111_u32) != 0 if permissions && !directory
 
-          flags = 0_u32
-          flags |= Commander::ROW_FLAG_DIRECTORY if directory
-          flags |= Commander::ROW_FLAG_EXECUTABLE if executable
+      flags = 0_u32
+      flags |= Commander::ROW_FLAG_DIRECTORY if directory
+      flags |= Commander::ROW_FLAG_EXECUTABLE if executable
 
-          display_name = if directory
-                           "/#{name}"
-                         elsif executable
-                           "*#{name}"
-                         else
-                           name
-                         end
+      display_name = if directory
+                       "/#{entry.name}"
+                     elsif executable
+                       "*#{entry.name}"
+                     else
+                       entry.name
+                     end
 
-          rows << PanelEntry.new(
-            name: display_name,
-            size: directory ? "<DIR>" : format_size(info.size),
-            modified: info.modification_time.to_local.to_s("%b %-d %H:%M"),
-            path: full_path,
-            flags: flags
-          )
-        rescue
-          # Ignore entries that can't be stat-ed.
-        end
-      end
-    rescue
-      # Keep panel visible even if directory listing fails.
+      PanelEntry.new(
+        name: display_name,
+        size: directory ? "<DIR>" : format_size(entry.size || 0_i64),
+        modified: entry.modified_at.try(&.to_local.to_s("%b %-d %H:%M")) || "",
+        path: entry.path.path,
+        flags: flags
+      )
     end
 
     rows.sort_by! { |entry| {entry.directory? ? 0 : 1, entry.name.downcase} }

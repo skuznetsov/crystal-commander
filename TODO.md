@@ -221,6 +221,7 @@ Definition of Done:
 - `Commander::VirtualFS::UriResolver` resolves relative, parent, absolute, and home paths across supported schemes
 - `Commander::VirtualFS::FileProvider` supports local stat/list/read/write/mkdir/delete/rename/copy without network dependencies
 - Existing `Commander::FileOperations.mkdir` and `copy_file` delegate local mutations through `VirtualFS::FileProvider`
+- `PanelState.load_path` uses `VirtualFS::FileProvider` for local directory stat/list rows
 - Unsupported schemes fail before I/O with typed `VfsError`
 - Tests cover registry dispatch, unsupported scheme, binary-safe local read, and local mutation operations
 - `crystal spec`, `sh scripts/spec_check`, and `make commander` pass
@@ -233,11 +234,12 @@ Evidence:
 - Added `UriResolver` for relative, parent, absolute, and home path resolution
 - Added mock provider dispatch specs and local file provider specs
 - Routed existing local mkdir/copy commands through the VFS file provider
-- Validation: `crystal spec` passed with 60 examples; `sh scripts/spec_check` passed; `make commander` passed
+- Routed local panel directory listing through the VFS file provider
+- Validation: `crystal spec` passed with 60 examples; `sh scripts/spec_check` passed; `make commander` passed; `sh scripts/commanderctl state` returned JSON
 
 Remaining:
 
-- PanelState still stores local paths, not VFS URIs
-- `FileProvider` is not yet wired into Commander panel navigation
+- Panel snapshots still expose local path strings, not canonical VFS URIs
+- PanelState still stores local paths internally instead of `VirtualPath`
 - Offline simulation and remote provider skeletons remain future work
 - `open_stream` intentionally returns `UnsupportedOperation` until stream ownership is specified

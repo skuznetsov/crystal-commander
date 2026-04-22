@@ -111,8 +111,9 @@ module Commander
       getter kind : EntryKind
       getter size : Int64?
       getter modified_at : Time?
+      getter permissions : UInt32?
 
-      def initialize(@name : String, @path : VirtualPath, @kind : EntryKind, @size : Int64? = nil, @modified_at : Time? = nil)
+      def initialize(@name : String, @path : VirtualPath, @kind : EntryKind, @size : Int64? = nil, @modified_at : Time? = nil, @permissions : UInt32? = nil)
       end
     end
 
@@ -349,7 +350,8 @@ module Commander
           path: VirtualPath.new("file", nil, local),
           kind: kind,
           size: info.size,
-          modified_at: info.modification_time
+          modified_at: info.modification_time,
+          permissions: info.permissions.value.to_u32
         )
       end
     end
