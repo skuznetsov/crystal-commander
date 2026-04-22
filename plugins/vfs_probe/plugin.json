@@ -1,0 +1,17 @@
+{
+  "id": "example.vfs_probe",
+  "name": "Example VFS Probe Plugin",
+  "version": "0.1.0",
+  "api_version": "0.1",
+  "runtime": "lua",
+  "entrypoint": "main.lua",
+  "permissions": ["ui.status", "panel.read", "vfs.read:file"],
+  "commands": [
+    {
+      "id": "example.vfs_probe.stat_panel",
+      "title": "VFS Stat Panel",
+      "description": "Request a read-only VFS stat action for the active panel URI."
+    }
+  ],
+  "key_bindings": []
+}
