@@ -111,6 +111,20 @@ Definition of Done:
 - Keep Commander state/widgets in Crystal
 - Keep AppKit as a backend host for windows/input/drawing only
 - Support terminal and macOS backends from the same widget model
+- `DrawCommand` enum covers fill, stroke, text, clip, image
+- `UIEvent` union covers key, mouse, scroll, resize, focus, wakeup
+- `Theme` palette/style tokens shared by both backends
+- Check: `make && sh scripts/spec_check` passes
+- Check: compile stub that swaps backends; both receive identical DrawCommand streams
+- Check: runtime theme switch updates colors in terminal and macOS without restart
+
+Migration phases (see `specs/CrystalGuiApiSpec.cs.md`):
+
+- P0: Snapshot projection (`Commander::UI.workspace(snapshot)`) — current baseline
+- P1: DrawCommand + UIEvent abstractions; `Backend` trait with `draw`/`poll_event`
+- P2: Retained widget tree (`Widget`, `Label`, `ListView`, `Split`, `TabBar`); file panel as `ListView`
+- P3: Theme and style tokens; palette maps to NSColor vs ANSI escapes
+- P4: Full workspace as widgets (`MenuBar` | `TabBar` | `WorkspaceSplit` | `StatusBar`); C ABI as one backend impl
 
 ## 8. Add top-level workspace tabs
 
@@ -124,3 +138,72 @@ Definition of Done:
 - Each tab owns its own panel collection and active panel
 - Existing `Tab` key still cycles panels inside the active workspace
 - Separate commands exist for next/previous/new/close tab
+- `tab.set_panel_count` changes only active tab's panel array
+- `COMMANDER_DUMP_STATE` includes `workspace.tabs[*]` with per-tab panels and cursors
+- Check: `sh scripts/commanderctl command-json tab.new` emits parseable workspace JSON
+- Check: create tab A (2 panels), tab B (4 panels); switch verifies independent state
+
+Migration phases (see `specs/TabsSpec.cs.md`):
+
+- P1: Tab model in Crystal, snapshot includes workspace; no renderer tab bar yet
+- P2: `set_tab_bar(TabBarState)` renderer command; native tab bar renders titles
+- P3: Per-tab panel independence verified by cross-tab state preservation
+- P4: Tab rename + optional persistence (future)
+
+## 9. Text viewer/editor and external viewer integration
+
+Status: TODO
+
+Risk: CAUTION
+
+Definition of Done:
+
+- Internal text viewer widget supports scroll, search, line navigation
+- Internal editor supports edit, undo/redo, save with dirty flag
+- External viewer/editor delegation launches system default or configured app
+- Viewer/editor sessions are separate from panel state; `ViewerSession` registry exists
+- `file.view` / `file.edit` open internal widgets; `file.view_external` / `file.edit_external` delegate
+- Save from internal editor goes through Commander file operation path (confirmation policy respected)
+- `ViewerConfig` holds `external_viewer`, `external_editor`, `max_buffer_size`, `tab_width`
+- Check: `sh scripts/commanderctl commands` lists viewer/editor command IDs
+- Check: open viewer on small file; verify `COMMANDER_DUMP_STATE` includes `viewer_sessions`
+- Check: large file (> max_buffer_size) shows "external required" or auto-delegates
+- Check: `make && sh scripts/spec_check` passes
+
+Migration phases (see `docs/ViewerEditorSpec.cs.md`):
+
+- P1: Internal text viewer (read-only); `file.view` opens session; snapshot includes sessions
+- P2: External viewer delegation; `file.view_external` uses NSWorkspace / $PAGER
+- P3: Internal editor (basic); edit, undo/redo, save via mediated file ops
+- P4: External editor + completion; `file.edit_external`; optional file-watch refresh (future)
+
+## 10. Virtual File System (SSH/SFTP/S3) integration design
+
+Status: DONE (design only)
+
+Risk: LOW
+
+Definition of Done:
+
+- `docs/specs/VirtualFileSystemSpec.cs.md` created with URI schemes, provider operations, auth rules, caching model, panel navigation, staged plan (Phase 0 first), and credential-free verification matrix
+- TODO.md updated with this item
+- `sh scripts/spec_check` exits 0 (English prose, required headings in checked specs)
+- No changes to src/, spec/, no new dependencies, no network calls, no app launch
+
+Evidence:
+
+- Created docs/specs/VirtualFileSystemSpec.cs.md following CodeSpeak style (Intent/MUST/MUST NOT/Invariants/Checks)
+- Defined file/ssh/sftp/s3 URI forms + examples
+- Specified exact provider ops (stat/list/read/write/mkdir/delete/rename/copy/open_stream)
+- Auth boundary: secrets never in Crystal heap; keychain/agent only
+- Offline model: stale cache + VfsError::Offline for mutations
+- Panel nav preserves local semantics via URI-based dispatch
+- Lua plugins access VFS only through Commander-mediated permission-gated APIs
+- Safe first increment = Phase 0 (URI + FileProvider wrapper only)
+- Verification: URI roundtrips, mock dispatch, offline simulation, auth grep checks — all runnable without credentials
+- Command run: sh scripts/spec_check (passed)
+
+Remaining:
+
+- Actual implementation of Phase 0+ deferred to future work items
+- Will require update to specs/ArchitectureSpec.cs.md and PanelsAndEventsSpec.cs.md when code changes begin

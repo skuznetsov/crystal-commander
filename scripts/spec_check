@@ -4,7 +4,7 @@ set -eu
 repo_dir="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 failed=0
 
-for file in "$repo_dir"/specs/*Spec.cs.md; do
+for file in "$repo_dir"/specs/*Spec.cs.md "$repo_dir"/docs/*Spec.cs.md "$repo_dir"/docs/specs/*Spec.cs.md; do
   [ -f "$file" ] || continue
   for heading in "## Intent" "## MUST" "## MUST NOT"; do
     if ! grep -q "^$heading" "$file"; then
@@ -18,7 +18,7 @@ for file in "$repo_dir"/specs/*Spec.cs.md; do
   fi
 done
 
-if find "$repo_dir/specs" -name '*.codespeak.md' -print | grep -q .; then
+if find "$repo_dir/specs" "$repo_dir/docs" -name '*.codespeak.md' -print 2>/dev/null | grep -q .; then
   printf 'old .codespeak.md spec names found; use *Spec.cs.md\n' >&2
   failed=1
 fi
@@ -30,6 +30,7 @@ import sys
 repo = sys.argv[1]
 roots = [
     os.path.join(repo, "README.md"),
+    os.path.join(repo, "docs"),
     os.path.join(repo, "specs"),
     os.path.join(repo, "src"),
     os.path.join(repo, "plugins"),
