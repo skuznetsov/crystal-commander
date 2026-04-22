@@ -218,6 +218,7 @@ Definition of Done:
 
 - `Commander::VirtualFS::VirtualPath` parses and serializes file/ssh/sftp/s3 URIs
 - `Commander::VirtualFS::Registry` dispatches all provider operations by URI scheme
+- `Commander::VirtualFS::UriResolver` resolves relative, parent, absolute, and home paths across supported schemes
 - `Commander::VirtualFS::FileProvider` supports local stat/list/read/write/mkdir/delete/rename/copy without network dependencies
 - Unsupported schemes fail before I/O with typed `VfsError`
 - Tests cover registry dispatch, unsupported scheme, binary-safe local read, and local mutation operations
@@ -228,12 +229,13 @@ Evidence:
 - Implemented `ErrorCode`, `VfsError`, `VfsException`, `Registry`, and `FileProvider`
 - Expanded provider contract to stat/list/read/write/mkdir/delete/rename/copy/open_stream
 - Added URI `to_uri` serialization for round-trip checks while keeping `to_s` as display formatting
+- Added `UriResolver` for relative, parent, absolute, and home path resolution
 - Added mock provider dispatch specs and local file provider specs
-- Validation: `crystal spec` passed with 56 examples; `sh scripts/spec_check` passed; `make commander` passed
+- Validation: `crystal spec` passed with 59 examples; `sh scripts/spec_check` passed; `make commander` passed
 
 Remaining:
 
 - PanelState still stores local paths, not VFS URIs
 - `FileProvider` is not yet wired into Commander panel navigation or file command execution
-- Relative resolution, home resolution, offline simulation, and remote provider skeletons remain future work
+- Offline simulation and remote provider skeletons remain future work
 - `open_stream` intentionally returns `UnsupportedOperation` until stream ownership is specified

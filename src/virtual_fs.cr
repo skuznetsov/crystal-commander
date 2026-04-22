@@ -125,6 +125,54 @@ module Commander
       end
     end
 
+    module UriResolver
+      def self.resolve(current : VirtualPath, input : String, home : String = ENV["HOME"]? || "/") : VirtualPath
+        return current if input.empty?
+        return VirtualPath.parse(input) if input.includes?("://")
+
+        if input == "~" || input.starts_with?("~/")
+          suffix = input == "~" ? "" : input[2..]
+          return VirtualPath.new("file", nil, normalize_path(File.join(home, suffix)))
+        end
+
+        if input.starts_with?("/")
+          return VirtualPath.new(current.scheme, current.authority, normalize_path(input))
+        end
+
+        append(current, input)
+      end
+
+      def self.append(current : VirtualPath, segment : String) : VirtualPath
+        base = current.path
+        joined = base.ends_with?("/") ? "#{base}#{segment}" : "#{base}/#{segment}"
+        VirtualPath.new(current.scheme, current.authority, normalize_path(joined))
+      end
+
+      def self.parent(current : VirtualPath) : VirtualPath
+        normalized = normalize_path(current.path)
+        parent = File.dirname(normalized)
+        parent = "/" if parent == "."
+        VirtualPath.new(current.scheme, current.authority, parent)
+      end
+
+      def self.normalize_path(path : String) : String
+        absolute = path.starts_with?("/")
+        parts = [] of String
+        path.split("/").each do |part|
+          next if part.empty? || part == "."
+          if part == ".."
+            parts.pop?
+          else
+            parts << part
+          end
+        end
+
+        prefix = absolute ? "/" : ""
+        normalized = "#{prefix}#{parts.join("/")}"
+        normalized.empty? ? "/" : normalized
+      end
+    end
+
     struct Response
       getter ok : Bool
       getter entries : Array(Entry)

@@ -139,6 +139,40 @@ describe Commander::VirtualFS::Registry do
   end
 end
 
+describe Commander::VirtualFS::UriResolver do
+  it "resolves relative and parent segments inside the current scheme" do
+    current = Commander::VirtualFS::VirtualPath.parse("sftp://user@example.com/home/user/project")
+
+    child = Commander::VirtualFS::UriResolver.resolve(current, "src/../docs")
+    child.scheme.should eq("sftp")
+    child.authority.should eq("user@example.com")
+    child.path.should eq("/home/user/project/docs")
+    child.to_uri.should eq("sftp://user@example.com/home/user/project/docs")
+
+    parent = Commander::VirtualFS::UriResolver.parent(child)
+    parent.to_uri.should eq("sftp://user@example.com/home/user/project")
+  end
+
+  it "keeps absolute paths on the current remote authority" do
+    current = Commander::VirtualFS::VirtualPath.parse("ssh://host.example.org/etc/nginx")
+    resolved = Commander::VirtualFS::UriResolver.resolve(current, "/var/log/../tmp")
+
+    resolved.scheme.should eq("ssh")
+    resolved.authority.should eq("host.example.org")
+    resolved.path.should eq("/var/tmp")
+  end
+
+  it "resolves home shortcuts to local file URIs" do
+    current = Commander::VirtualFS::VirtualPath.parse("s3://bucket/prefix")
+    resolved = Commander::VirtualFS::UriResolver.resolve(current, "~/work", "/Users/example")
+
+    resolved.scheme.should eq("file")
+    resolved.authority.should be_nil
+    resolved.path.should eq("/Users/example/work")
+    resolved.to_uri.should eq("file:///Users/example/work")
+  end
+end
+
 describe Commander::VirtualFS::FileProvider do
   it "lists and reads local file URIs without network dependencies" do
     root = File.join(Dir.tempdir, "commander-vfs-#{Process.pid}-#{Time.utc.to_unix_ms}")
