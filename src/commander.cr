@@ -570,6 +570,15 @@ class CommanderApp
       end
     end
 
+    @commands.register("tab.set_panel_count", "Set tab panel count", "Set the panel count for the active workspace tab") do |ctx|
+      count = ctx.argument.try(&.to_i?)
+      if count
+        set_active_tab_panel_count(count)
+      else
+        update_status("Tab panel count requires integer COMMANDER_COMMAND_ARG")
+      end
+    end
+
     @commands.register("vfs.probe_uri", "Probe VFS URI", "Probe a URI through the VirtualFS registry without changing panels") do |ctx|
       uri = ctx.argument
       if uri && !uri.empty?
@@ -820,6 +829,27 @@ class CommanderApp
 
     @tabs[@active_tab].title = clean_title
     update_status("Tab #{@active_tab + 1} renamed: #{clean_title}")
+  end
+
+  private def set_active_tab_panel_count(count : Int32) : Nil
+    new_count = count.clamp(1, 8).to_i32
+    save_active_tab_state
+
+    if new_count > @panels.size
+      (new_count - @panels.size).times do
+        @panels << PanelState.new(home_dir)
+      end
+    elsif new_count < @panels.size
+      @panels = @panels.first(new_count)
+    end
+
+    @panel_count = @panels.size
+    @active_panel = 0 if @active_panel >= @panel_count
+    @tabs[@active_tab].panels = @panels
+    @tabs[@active_tab].active_panel = @active_panel
+    sync_all
+    set_active_panel(@active_panel)
+    update_status("Tab #{@active_tab + 1} panel count: #{@panel_count}")
   end
 
   private def save_active_tab_state : Nil

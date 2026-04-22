@@ -33,6 +33,29 @@ assert tabs[1]["panel_uris"][0].endswith("/Crystal"), tabs[1]["panel_uris"][0]
 print("{} tabs; active={}; tab0={}; tab1={}".format(len(tabs), snapshot["active_tab"], tabs[0]["panel_uris"][0], tabs[1]["panel_uris"][0]))
 '
 
+panel_count_sequence='[
+  {"command_id":"tab.new"},
+  {"command_id":"tab.set_panel_count","argument":"4"},
+  {"command_id":"tab.previous"},
+  {"command_id":"tab.next"}
+]'
+
+panel_count_json="$(COMMANDER_AUTOMATION_COMMANDS_JSON="$panel_count_sequence" "$repo_dir/commander")"
+printf '%s\n' "$panel_count_json" | python3 -c '
+import json
+import sys
+
+data = json.load(sys.stdin)
+snapshot = data["snapshot"]
+tabs = snapshot["tabs"]
+assert len(tabs) == 2, len(tabs)
+assert snapshot["active_tab"] == 1, snapshot["active_tab"]
+assert tabs[0]["panel_count"] == 2, tabs[0]["panel_count"]
+assert tabs[1]["panel_count"] == 4, tabs[1]["panel_count"]
+assert snapshot["panel_count"] == 4, snapshot["panel_count"]
+print("panel counts ok; tab0={}; tab1={}; active={}".format(tabs[0]["panel_count"], tabs[1]["panel_count"], snapshot["panel_count"]))
+'
+
 close_sequence='[
   {"command_id":"tab.new"},
   {"command_id":"tab.close"},

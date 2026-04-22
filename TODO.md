@@ -165,15 +165,17 @@ Evidence:
 - Added `TabSnapshot` and `AppSnapshot.tabs`
 - Added `tab.new`, `tab.next`, `tab.previous`, and `tab.close`
 - Added `tab.rename`
+- Added `tab.set_panel_count`
 - Verified headless sequence creates two tabs with different panel URIs and preserves state across tab switching
 - Added `scripts/tabs_smoke` for no-GUI workspace tab state checks
 - Extended `scripts/tabs_smoke` to cover tab close and the last-tab guard
-- Validation: `crystal spec` passed with 69 examples; `sh scripts/spec_check` passed; `make commander` passed; `scripts/tabs_smoke` passed
+- Extended `scripts/tabs_smoke` to verify per-tab panel count independence
+- Validation: `crystal spec` passed with 71 examples; `sh scripts/spec_check` passed; `make commander` passed; `scripts/tabs_smoke` passed; `scripts/vfs_smoke` passed
 
 Remaining:
 
 - Renderer tab bar is not implemented yet
-- `tab.set_panel_count` is not implemented yet because renderer panel count is still fixed at launch
+- Native renderer panel layout still matches launch-time renderer panel count; extra panels are state-visible headlessly until the renderer migrates to `DrawFrame`
 - Tab persistence remains future work
 
 Migration phases (see `specs/TabsSpec.cs.md`):
