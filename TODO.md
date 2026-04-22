@@ -137,7 +137,7 @@ Definition of Done:
 - Tabs are Crystal-owned workspaces
 - Each tab owns its own panel collection and active panel
 - Existing `Tab` key still cycles panels inside the active workspace
-- Separate commands exist for next/previous/new/close tab
+- Separate commands exist for next/previous/new/close/rename tab
 - `tab.set_panel_count` changes only active tab's panel array
 - `COMMANDER_DUMP_STATE` includes `workspace.tabs[*]` with per-tab panels and cursors
 - Check: `sh scripts/commanderctl command-json tab.new` emits parseable workspace JSON
@@ -148,6 +148,7 @@ Evidence:
 - Added Crystal-owned tab state with independent panel arrays and active panel index
 - Added `TabSnapshot` and `AppSnapshot.tabs`
 - Added `tab.new`, `tab.next`, `tab.previous`, and `tab.close`
+- Added `tab.rename`
 - Verified headless sequence creates two tabs with different panel URIs and preserves state across tab switching
 - Added `scripts/tabs_smoke` for no-GUI workspace tab state checks
 - Validation: `crystal spec` passed with 69 examples; `sh scripts/spec_check` passed; `make commander` passed; `scripts/tabs_smoke` passed
@@ -156,7 +157,7 @@ Remaining:
 
 - Renderer tab bar is not implemented yet
 - `tab.set_panel_count` is not implemented yet because renderer panel count is still fixed at launch
-- Tab rename and persistence remain future work
+- Tab persistence remains future work
 
 Migration phases (see `specs/TabsSpec.cs.md`):
 

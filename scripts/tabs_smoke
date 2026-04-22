@@ -11,6 +11,7 @@ fi
 sequence='[
   {"command_id":"panel.open_path","argument":"file:///Users/sergey/Projects/Crystal/commander"},
   {"command_id":"tab.new"},
+  {"command_id":"tab.rename","argument":"Work"},
   {"command_id":"panel.open_path","argument":"file:///Users/sergey/Projects/Crystal"},
   {"command_id":"tab.previous"},
   {"command_id":"tab.next"}
@@ -26,6 +27,7 @@ snapshot = data["snapshot"]
 tabs = snapshot["tabs"]
 assert len(tabs) == 2, len(tabs)
 assert snapshot["active_tab"] == 1, snapshot["active_tab"]
+assert tabs[1]["title"] == "Work", tabs[1]["title"]
 assert tabs[0]["panel_uris"][0].endswith("/commander"), tabs[0]["panel_uris"][0]
 assert tabs[1]["panel_uris"][0].endswith("/Crystal"), tabs[1]["panel_uris"][0]
 print("{} tabs; active={}; tab0={}; tab1={}".format(len(tabs), snapshot["active_tab"], tabs[0]["panel_uris"][0], tabs[1]["panel_uris"][0]))

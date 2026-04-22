@@ -561,6 +561,15 @@ class CommanderApp
       close_active_tab
     end
 
+    @commands.register("tab.rename", "Rename tab", "Rename the active workspace tab") do |ctx|
+      title = ctx.argument
+      if title && !title.empty?
+        rename_active_tab(title)
+      else
+        update_status("Tab rename requires COMMANDER_COMMAND_ARG")
+      end
+    end
+
     @commands.register("vfs.probe_uri", "Probe VFS URI", "Probe a URI through the VirtualFS registry without changing panels") do |ctx|
       uri = ctx.argument
       if uri && !uri.empty?
@@ -800,6 +809,17 @@ class CommanderApp
     sync_all
     set_active_panel(@active_panel)
     update_status("Closed tab; active tab #{@active_tab + 1}")
+  end
+
+  private def rename_active_tab(title : String) : Nil
+    clean_title = title.strip
+    if clean_title.empty?
+      update_status("Tab rename requires a non-empty title")
+      return
+    end
+
+    @tabs[@active_tab].title = clean_title
+    update_status("Tab #{@active_tab + 1} renamed: #{clean_title}")
   end
 
   private def save_active_tab_state : Nil

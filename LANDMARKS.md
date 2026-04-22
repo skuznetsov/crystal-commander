@@ -66,7 +66,7 @@ Trust: `{F:0.8,G:0.7,R:0.8}` `crystal spec` passed with 69 examples, `sh scripts
 
 ## LM-9: Tabs are Crystal-owned workspace state
 
-Commander has a Crystal-owned tab model with independent panel arrays and per-tab active panel state. The renderer tab bar is not implemented yet, and panel count still matches the launch-time renderer panel count.
+Commander has a Crystal-owned tab model with independent panel arrays, per-tab active panel state, and tab rename support. The renderer tab bar is not implemented yet, and panel count still matches the launch-time renderer panel count.
 
 Evidence: `src/commander.cr`, `src/snapshots.cr`, `specs/TabsSpec.cs.md`.
 
