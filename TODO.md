@@ -149,7 +149,8 @@ Evidence:
 - Added `TabSnapshot` and `AppSnapshot.tabs`
 - Added `tab.new`, `tab.next`, `tab.previous`, and `tab.close`
 - Verified headless sequence creates two tabs with different panel URIs and preserves state across tab switching
-- Validation: `crystal spec` passed with 69 examples; `sh scripts/spec_check` passed; `make commander` passed
+- Added `scripts/tabs_smoke` for no-GUI workspace tab state checks
+- Validation: `crystal spec` passed with 69 examples; `sh scripts/spec_check` passed; `make commander` passed; `scripts/tabs_smoke` passed
 
 Remaining:
 
