@@ -292,6 +292,7 @@ class CommanderApp
   @pending_operation : Commander::FileOperationPlan?
   @preview : Commander::PreviewSnapshot?
   @external_view : Commander::ExternalViewSnapshot?
+  @plugin_actions : Array(Commander::PluginActionSnapshot)
 
   def initialize
     @panel_count = panel_count_env
@@ -312,6 +313,7 @@ class CommanderApp
     @pending_operation = nil
     @preview = nil
     @external_view = nil
+    @plugin_actions = [] of Commander::PluginActionSnapshot
     @plugin_host.load_manifests
     register_builtin_commands
     register_plugin_manifest_commands
@@ -635,7 +637,9 @@ class CommanderApp
 
       response = runtime.execute(Commander::PluginRuntimeRequest.new(command.id, manifest.id, plugin.entrypoint_path, debug_snapshot))
       if response.ok
-        update_status(response.status_text || "Plugin command executed: #{command.id}")
+        capture_plugin_actions(manifest.id, command.id, response.actions)
+        action_suffix = response.actions.empty? ? "" : " (#{response.actions.size} action(s) pending)"
+        update_status("#{response.status_text || "Plugin command executed: #{command.id}"}#{action_suffix}")
       else
         update_status(response.error || "Plugin command failed: #{command.id}")
       end
@@ -1086,8 +1090,22 @@ class CommanderApp
       pending_operation: @pending_operation.try(&.to_snapshot),
       preview: @preview,
       external_view: @external_view,
-      panels: panels
+      panels: panels,
+      plugin_actions: @plugin_actions
     )
+  end
+
+  private def capture_plugin_actions(plugin_id : String, command_id : String, actions : Array(Commander::PluginRuntimeAction)) : Nil
+    @plugin_actions = actions.map do |action|
+      Commander::PluginActionSnapshot.new(
+        plugin_id: plugin_id,
+        command_id: command_id,
+        kind: action.kind,
+        operation: action.operation,
+        uri: action.uri,
+        target_uri: action.target_uri
+      )
+    end
   end
 
   private def handle_automation_command(command : Commander::AutomationCommand) : Commander::AutomationResponse

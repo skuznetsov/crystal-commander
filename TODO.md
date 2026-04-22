@@ -227,6 +227,7 @@ Definition of Done:
 - Panel and entry snapshots expose canonical VFS `uri` fields while retaining legacy `path` fields
 - `panel.open_path` accepts `file://` URIs and fail-closed remote URIs without network access
 - Lua plugins can declare VFS request intent actions without executing provider I/O
+- App snapshots expose pending plugin VFS actions for automation/debug layers
 - Unsupported schemes fail before I/O with typed `VfsError`
 - Tests cover registry dispatch, unsupported scheme, binary-safe local read, and local mutation operations
 - `crystal spec`, `sh scripts/spec_check`, and `make commander` pass
@@ -245,7 +246,8 @@ Evidence:
 - Added canonical VFS URI fields to panel/entry snapshots and Lua panel snapshots
 - Added URI-aware `panel.open_path` behavior for local file URIs and fail-closed remote URI probes
 - Added Lua VFS request intent actions in `PluginRuntimeResponse`
-- Validation: `crystal spec` passed with 63 examples; `sh scripts/spec_check` passed; `make clean && make commander` passed; `sh scripts/commanderctl state` returned JSON with `uri` fields
+- Added app snapshot exposure for pending plugin VFS actions
+- Validation: `crystal spec` passed with 63 examples; `sh scripts/spec_check` passed; `make clean && make commander` passed; `sh scripts/commanderctl state` returned JSON with `uri` fields; temporary Lua plugin command returned one pending VFS action
 
 Remaining:
 

@@ -138,6 +138,20 @@ module Commander
     end
   end
 
+  struct PluginActionSnapshot
+    include JSON::Serializable
+
+    getter plugin_id : String
+    getter command_id : String
+    getter kind : String
+    getter operation : String
+    getter uri : String
+    getter target_uri : String?
+
+    def initialize(@plugin_id : String, @command_id : String, @kind : String, @operation : String, @uri : String, @target_uri : String? = nil)
+    end
+  end
+
   struct AppSnapshot
     include JSON::Serializable
 
@@ -150,6 +164,7 @@ module Commander
     getter plugins : Array(PluginSnapshot)
     getter plugin_runtimes : Array(PluginRuntimeSnapshot)
     getter plugin_errors : Array(String)
+    getter plugin_actions : Array(PluginActionSnapshot)
     getter commands : Array(CommandSnapshot)
     getter pending_operation : OperationPlanSnapshot?
     getter preview : PreviewSnapshot?
@@ -170,7 +185,8 @@ module Commander
       @pending_operation : OperationPlanSnapshot?,
       @preview : PreviewSnapshot?,
       @external_view : ExternalViewSnapshot?,
-      @panels : Array(PanelSnapshot)
+      @panels : Array(PanelSnapshot),
+      @plugin_actions : Array(PluginActionSnapshot) = [] of PluginActionSnapshot
     )
     end
   end
