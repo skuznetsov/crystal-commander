@@ -176,6 +176,7 @@ Phase 0 — URI Abstraction & Local Provider (SAFE FIRST INCREMENT)
 
 Phase 1 — Connection Manager + Mock Remote Provider
 - Add MockVfsProvider for deterministic testing of dispatch, error, and offline paths.
+- The concrete local development provider is `VirtualFS::MemoryProvider`, which can be registered for supported schemes without network or credentials.
 - Create SSH/SFTP provider skeleton using existing system ssh/sftp binaries or libssh2 (behind compile flag).
 - Connection manager stores host aliases, verifies host keys, caches session handles.
 - Address bar and "Connect" command accept ssh:// and sftp:// URIs.
@@ -204,12 +205,14 @@ Exit criteria for each phase: spec_check passes, no credential material in repo,
 
 2. Registry dispatch and interface compliance
    - Register FileProvider and MockProvider.
+   - Register MemoryProvider for sftp/s3 to simulate remote provider behavior without credentials.
    - For every operation (stat/list/read/write/mkdir/delete/rename/copy/open_stream) invoke via registry and assert correct provider received the call.
    - Unknown scheme ("ftp://") raises VfsError::UnsupportedScheme before any I/O.
 
 3. Error model coverage
    - MockProvider can be configured to return each VfsError variant; verify typed handling and user messages.
    - Offline mode test: list returns stale entries; write/delete raise Offline.
+   - MemoryProvider offline mode is sufficient for credential-free metadata/mutation checks.
 
 4. Auth boundary static and runtime checks
    - Grep for any struct or method parameter containing "secret", "key", "password", "token" in vfs/ sources — must be absent or explicitly redacted.

@@ -247,3 +247,51 @@ describe Commander::VirtualFS::FileProvider do
     end
   end
 end
+
+describe Commander::VirtualFS::MemoryProvider do
+  it "provides deterministic remote-like list/stat/read behavior without network access" do
+    provider = Commander::VirtualFS::MemoryProvider.new("sftp")
+    root = Commander::VirtualFS::VirtualPath.parse("sftp://example.com/home/user")
+    file = Commander::VirtualFS::VirtualPath.parse("sftp://example.com/home/user/readme.txt")
+
+    provider.add_directory(root)
+    provider.add_file(file, Bytes[65, 66])
+
+    provider.stat(root).entries.first.kind.should eq(Commander::VirtualFS::EntryKind::Directory)
+    listing = provider.list(root)
+    listing.ok.should be_true
+    listing.entries.map(&.name).should eq(["readme.txt"])
+
+    read = provider.read(file)
+    read.ok.should be_true
+    read.data.not_nil!.to_a.should eq([65_u8, 66_u8])
+  end
+
+  it "can be registered for supported remote schemes" do
+    registry = Commander::VirtualFS::Registry.new
+    provider = Commander::VirtualFS::MemoryProvider.new("s3")
+    bucket = Commander::VirtualFS::VirtualPath.parse("s3://bucket/prefix")
+    object = Commander::VirtualFS::VirtualPath.parse("s3://bucket/prefix/object.txt")
+    provider.add_directory(bucket)
+    provider.add_file(object, Bytes[1])
+    registry.register(provider)
+
+    response = registry.dispatch(Commander::VirtualFS::Request.new(Commander::VirtualFS::Operation::List, bucket))
+    response.ok.should be_true
+    response.entries.map(&.name).should eq(["object.txt"])
+  end
+
+  it "returns stale metadata but blocks mutations while offline" do
+    provider = Commander::VirtualFS::MemoryProvider.new("sftp")
+    root = Commander::VirtualFS::VirtualPath.parse("sftp://example.com/home/user")
+    file = Commander::VirtualFS::VirtualPath.parse("sftp://example.com/home/user/readme.txt")
+    provider.add_directory(root)
+    provider.add_file(file, Bytes[65])
+    provider.offline = true
+
+    provider.list(root).entries.map(&.name).should eq(["readme.txt"])
+    write = provider.write(file, Bytes[66])
+    write.ok.should be_false
+    write.error.not_nil!.code.should eq(Commander::VirtualFS::ErrorCode::Offline)
+  end
+end

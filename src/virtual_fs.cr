@@ -310,6 +310,138 @@ module Commander
       end
     end
 
+    class MemoryProvider < Provider
+      getter scheme : String
+
+      def initialize(@scheme : String = "sftp", @offline : Bool = false)
+        raise ArgumentError.new("unsupported memory VFS scheme: #{@scheme}") unless SUPPORTED_SCHEMES.includes?(@scheme)
+
+        @entries = {} of String => Entry
+        @data = {} of String => Bytes
+      end
+
+      def offline=(@offline : Bool)
+      end
+
+      def add_directory(path : VirtualPath) : MemoryProvider
+        @entries[key(path)] = Entry.new(File.basename(path.path), path, EntryKind::Directory)
+        self
+      end
+
+      def add_file(path : VirtualPath, data : Bytes) : MemoryProvider
+        @entries[key(path)] = Entry.new(File.basename(path.path), path, EntryKind::File, data.size.to_i64)
+        @data[key(path)] = copy_bytes(data)
+        self
+      end
+
+      def stat(path : VirtualPath) : Response
+        entry = @entries[key(path)]?
+        return Response.failure(ErrorCode::NotFound, "memory path not found: #{path.to_uri}") unless entry
+
+        Response.new(true, [entry])
+      end
+
+      def list(path : VirtualPath) : Response
+        return offline_list(path) if @offline
+
+        prefix = normalized_directory(path.path)
+        entries = @entries.values.select do |entry|
+          entry.path.authority == path.authority && File.dirname(entry.path.path) == prefix
+        end.sort_by(&.name)
+        Response.new(true, entries)
+      end
+
+      def read(path : VirtualPath) : Response
+        data = @data[key(path)]?
+        return Response.failure(ErrorCode::NotFound, "memory file not found: #{path.to_uri}") unless data
+
+        Response.new(true, data: copy_bytes(data))
+      end
+
+      def write(path : VirtualPath, data : Bytes) : Response
+        return offline_mutation("write") if @offline
+
+        add_file(path, data)
+        Response.new(true)
+      end
+
+      def mkdir(path : VirtualPath) : Response
+        return offline_mutation("mkdir") if @offline
+
+        add_directory(path)
+        Response.new(true)
+      end
+
+      def delete(path : VirtualPath) : Response
+        return offline_mutation("delete") if @offline
+
+        @entries.delete(key(path))
+        @data.delete(key(path))
+        Response.new(true)
+      end
+
+      def rename(path : VirtualPath, target : VirtualPath) : Response
+        return offline_mutation("rename") if @offline
+
+        entry = @entries.delete(key(path))
+        return Response.failure(ErrorCode::NotFound, "memory path not found: #{path.to_uri}") unless entry
+
+        data = @data.delete(key(path))
+        moved = Entry.new(File.basename(target.path), target, entry.kind, entry.size, entry.modified_at, entry.permissions)
+        @entries[key(target)] = moved
+        @data[key(target)] = data if data
+        Response.new(true)
+      end
+
+      def copy(path : VirtualPath, target : VirtualPath) : Response
+        return offline_mutation("copy") if @offline
+
+        entry = @entries[key(path)]?
+        return Response.failure(ErrorCode::NotFound, "memory path not found: #{path.to_uri}") unless entry
+
+        data = @data[key(path)]?
+        copied = Entry.new(File.basename(target.path), target, entry.kind, entry.size, entry.modified_at, entry.permissions)
+        @entries[key(target)] = copied
+        @data[key(target)] = copy_bytes(data) if data
+        Response.new(true)
+      end
+
+      def open_stream(path : VirtualPath) : Response
+        Response.failure(ErrorCode::UnsupportedOperation, "memory stream handles are not exposed through Response")
+      end
+
+      private def offline_list(path : VirtualPath) : Response
+        entries = list_without_offline(path)
+        Response.new(true, entries)
+      end
+
+      private def list_without_offline(path : VirtualPath) : Array(Entry)
+        prefix = normalized_directory(path.path)
+        @entries.values.select do |entry|
+          entry.path.authority == path.authority && File.dirname(entry.path.path) == prefix
+        end.sort_by(&.name)
+      end
+
+      private def offline_mutation(operation : String) : Response
+        Response.failure(ErrorCode::Offline, "memory #{operation} is unavailable while offline")
+      end
+
+      private def normalized_directory(path : String) : String
+        normalized = UriResolver.normalize_path(path)
+        normalized.empty? ? "/" : normalized
+      end
+
+      private def key(path : VirtualPath) : String
+        "#{path.scheme}://#{path.authority}#{UriResolver.normalize_path(path.path)}"
+      end
+
+      private def copy_bytes(data : Bytes) : Bytes
+        copy = Bytes.new(data.size)
+        copy.copy_from(data)
+        copy
+      end
+    end
+
     class FileProvider < Provider
       def scheme : String
         "file"
