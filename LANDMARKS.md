@@ -58,8 +58,8 @@ Trust: `{F:0.8,G:0.7,R:0.8}` verified through ACP smoke and worker/review runs.
 
 ## LM-8: VirtualFS Phase 0 foundation exists
 
-VirtualFS has a typed URI, URI resolver, provider, registry, and local file provider foundation. SSH/SFTP/S3 are recognized URI schemes, but remote provider implementations are not connected yet.
+VirtualFS has a typed URI, URI resolver, provider, registry, and local file provider foundation. Existing local mkdir/copy file operations now delegate through the local VFS provider. SSH/SFTP/S3 are recognized URI schemes, but remote provider implementations are not connected yet.
 
 Evidence: `src/virtual_fs.cr`, `spec/virtual_fs_spec.cr`, `docs/specs/VirtualFileSystemSpec.cs.md`.
 
-Trust: `{F:0.8,G:0.6,R:0.8}` `crystal spec` passed with 59 examples, `sh scripts/spec_check` passed, and `make commander` passed; panel integration remains pending.
+Trust: `{F:0.8,G:0.6,R:0.8}` `crystal spec` passed with 60 examples, `sh scripts/spec_check` passed, and `make commander` passed; panel navigation integration remains pending.

@@ -37,6 +37,19 @@ describe Commander::FileOperations do
       end
     end
 
+    it "copies binary files through the local VFS provider path" do
+      with_temp_subdir("copybinary") do |base|
+        src_dir = File.join(base, "src"); Dir.mkdir(src_dir)
+        tgt_dir = File.join(base, "tgt"); Dir.mkdir(tgt_dir)
+        src = File.join(src_dir, "binary.dat")
+        File.open(src, "w") { |file| file.write(Bytes[0, 255, 65]) }
+
+        res = Commander::FileOperations.copy_file(src, tgt_dir)
+        res.ok.should be_true
+        File.read(File.join(tgt_dir, "binary.dat")).to_slice.to_a.should eq([0_u8, 255_u8, 65_u8])
+      end
+    end
+
     it "fails if source not file" do
       with_temp_subdir("copybad") do |base|
         tgt = File.join(base, "t"); Dir.mkdir(tgt)

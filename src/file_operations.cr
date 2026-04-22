@@ -1,4 +1,5 @@
 require "./snapshots"
+require "./virtual_fs"
 
 module Commander
   enum FileOperationKind
@@ -72,8 +73,10 @@ module Commander
         return FileOperationResult.new(false, "Path already exists", expanded)
       end
 
-      Dir.mkdir_p(expanded)
-      FileOperationResult.new(true, "Directory created", expanded)
+      result = file_provider.mkdir(VirtualFS::VirtualPath.parse(expanded))
+      return FileOperationResult.new(true, "Directory created", expanded) if result.ok
+
+      FileOperationResult.new(false, result.error.try(&.message) || "Directory creation failed", expanded)
     rescue ex : File::Error
       FileOperationResult.new(false, ex.message || ex.class.name, expanded)
     end
@@ -95,10 +98,19 @@ module Commander
         return FileOperationResult.new(false, "Target already exists", target)
       end
 
-      File.copy(expanded_source, target)
-      FileOperationResult.new(true, "Copied", target)
+      result = file_provider.copy(
+        VirtualFS::VirtualPath.parse(expanded_source),
+        VirtualFS::VirtualPath.parse(target)
+      )
+      return FileOperationResult.new(true, "Copied", target) if result.ok
+
+      FileOperationResult.new(false, result.error.try(&.message) || "Copy failed", target)
     rescue ex : File::Error
       FileOperationResult.new(false, ex.message || ex.class.name, nil)
+    end
+
+    private def self.file_provider : VirtualFS::FileProvider
+      VirtualFS::FileProvider.new
     end
   end
 end
