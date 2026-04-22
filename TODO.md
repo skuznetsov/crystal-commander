@@ -133,11 +133,13 @@ Evidence:
 - Added `WorkspaceRenderer.render` to project Commander snapshots into draw commands for menu, tabs, panels, selection, and status rows
 - Added `TabView` and canonical panel URI projection to the backend-neutral workspace view
 - Added specs proving two swappable backend stubs receive identical draw command streams
-- Validation: `crystal spec` passed with 71 examples; `sh scripts/spec_check` passed; `make commander` passed; `scripts/tabs_smoke` passed; `scripts/vfs_smoke` passed
+- Added retained `Widget`, `Label`, `ListView`, `Split`, `TabBar`, `FilePanelWidget`, `StatusBar`, and `WorkspaceWidget`
+- Routed file panel rows through the generic `ListView` widget while keeping file-manager state in Crystal snapshots
+- Added specs proving the retained workspace widget tree renders tabs, split panels, list rows, and selection styles
+- Validation: `crystal spec` passed with 72 examples; `sh scripts/spec_check` passed; `make commander` passed; `scripts/tabs_smoke` passed; `scripts/vfs_smoke` passed
 
 Remaining:
 
-- Retained widget tree is not implemented yet
 - AppKit renderer still consumes the existing C ABI state directly instead of `DrawFrame`
 - Terminal backend adapter is not implemented yet
 - Runtime theme switching remains future work

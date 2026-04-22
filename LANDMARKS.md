@@ -74,8 +74,8 @@ Trust: `{F:0.8,G:0.6,R:0.8}` `crystal spec` passed with 71 examples, `sh scripts
 
 ## LM-10: Backend-neutral UI draw frame exists
 
-Commander has a Crystal-owned P1 UI API with backend-neutral events, draw commands, draw frames, theme tokens, a backend contract, a recording backend for no-GUI verification, and a snapshot-to-draw-command workspace renderer. The current AppKit renderer still consumes the older C ABI state directly; this landmark proves the Crystal-side draw stream can be generated deterministically before native renderer migration.
+Commander has a Crystal-owned UI API with backend-neutral events, draw commands, draw frames, theme tokens, a backend contract, a recording backend for no-GUI verification, a retained widget tree, and a snapshot-to-widget workspace renderer. File panels are represented through a generic `ListView` widget, with Commander-specific state staying in Crystal snapshots. The current AppKit renderer still consumes the older C ABI state directly; this landmark proves the Crystal-side draw stream can be generated deterministically before native renderer migration.
 
 Evidence: `src/ui_api.cr`, `spec/ui_api_spec.cr`, `specs/CrystalGuiApiSpec.cs.md`.
 
-Trust: `{F:0.8,G:0.5,R:0.8}` `crystal spec` passed with 71 examples, `sh scripts/spec_check` passed, `make commander` passed, `scripts/tabs_smoke` passed, `scripts/vfs_smoke` passed, and UI specs verified two backend stubs receive identical draw command streams.
+Trust: `{F:0.8,G:0.6,R:0.8}` `crystal spec` passed with 72 examples, `sh scripts/spec_check` passed, `make commander` passed, `scripts/tabs_smoke` passed, `scripts/vfs_smoke` passed, and UI specs verified two backend stubs receive identical draw command streams plus a retained workspace widget tree with tabs, split panels, list rows, and selection styles.

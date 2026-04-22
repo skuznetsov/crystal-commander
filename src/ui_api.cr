@@ -156,6 +156,172 @@ module Commander
       end
     end
 
+    struct RenderContext
+      getter theme : Theme
+
+      def initialize(@theme : Theme = Theme.new)
+      end
+    end
+
+    abstract class Widget
+      getter id : String
+      property bounds : Rect
+      getter children : Array(Widget)
+
+      def initialize(@id : String, @bounds : Rect = Rect.new(0, 0, 0, 0), @children : Array(Widget) = [] of Widget)
+      end
+
+      def layout(bounds : Rect) : self
+        @bounds = bounds
+        self
+      end
+
+      def render(context : RenderContext, commands : Array(DrawCommand)) : Nil
+        @children.each(&.render(context, commands))
+      end
+
+      def render_frame(bounds : Rect, theme : Theme = Theme.new) : DrawFrame
+        commands = [] of DrawCommand
+        layout(bounds)
+        render(RenderContext.new(theme), commands)
+        DrawFrame.new(bounds, theme, commands)
+      end
+    end
+
+    class Label < Widget
+      property text : String
+      property color : String?
+      property style : String?
+
+      def initialize(@text : String, id : String = "label", color : String? = nil, style : String? = nil)
+        super(id)
+        @color = color
+        @style = style
+      end
+
+      def render(context : RenderContext, commands : Array(DrawCommand)) : Nil
+        commands << DrawCommand.text(@bounds, @text, @color || context.theme.foreground, @style || "label")
+        super(context, commands)
+      end
+    end
+
+    struct ListItem
+      getter columns : Array(String)
+      getter selected : Bool
+      getter metadata : Hash(String, String)
+
+      def initialize(@columns : Array(String), @selected : Bool = false, @metadata : Hash(String, String) = {} of String => String)
+      end
+    end
+
+    class ListView < Widget
+      getter headers : Array(String)
+      getter items : Array(ListItem)
+
+      def initialize(@headers : Array(String), @items : Array(ListItem), id : String = "list-view")
+        super(id)
+      end
+
+      def render(context : RenderContext, commands : Array(DrawCommand)) : Nil
+        theme = context.theme
+        commands << DrawCommand.fill_rect(Rect.new(@bounds.x, @bounds.y, @bounds.width, 1), theme.header, "#{@id}.header.background")
+        render_columns(commands, @headers, @bounds.y, theme.foreground, "#{@id}.header")
+
+        max_rows = Math.max(0, @bounds.height - 1)
+        @items.first(max_rows).each_with_index do |item, row|
+          y = @bounds.y + 1 + row
+          color = item.selected ? theme.status : theme.foreground
+          if item.selected
+            commands << DrawCommand.fill_rect(Rect.new(@bounds.x, y, @bounds.width, 1), theme.selection, "#{@id}.selection")
+          end
+          render_columns(commands, item.columns, y, color, "#{@id}.item")
+        end
+
+        super(context, commands)
+      end
+
+      private def render_columns(commands : Array(DrawCommand), columns : Array(String), y : Int32, color : String, style : String) : Nil
+        return if @bounds.width <= 0 || columns.empty?
+
+        if columns.size == 1
+          commands << DrawCommand.text(Rect.new(@bounds.x, y, @bounds.width, 1), columns.first, color, style)
+          return
+        end
+
+        fixed_tail = Math.min(24, @bounds.width // 2)
+        first_width = Math.max(1, @bounds.width - fixed_tail)
+        commands << DrawCommand.text(Rect.new(@bounds.x, y, first_width, 1), columns[0], color, "#{style}.0")
+
+        tail_columns = columns[1..]
+        tail_width = Math.max(1, fixed_tail // tail_columns.size)
+        tail_columns.each_with_index do |column, idx|
+          x = @bounds.x + first_width + idx * tail_width
+          width = idx == tail_columns.size - 1 ? @bounds.x + @bounds.width - x : tail_width
+          commands << DrawCommand.text(Rect.new(x, y, Math.max(1, width), 1), column, color, "#{style}.#{idx + 1}")
+        end
+      end
+    end
+
+    class TabBar < Widget
+      getter tabs : Array(TabView)
+
+      def initialize(@tabs : Array(TabView), id : String = "tab-bar")
+        super(id)
+      end
+
+      def render(context : RenderContext, commands : Array(DrawCommand)) : Nil
+        theme = context.theme
+        commands << DrawCommand.fill_rect(@bounds, theme.header, "#{@id}.background")
+        x = @bounds.x
+        @tabs.each do |tab|
+          label = tab.active ? "[#{tab.title}]" : " #{tab.title} "
+          width = Math.min(Math.max(label.size + 2, 8), Math.max(0, @bounds.x + @bounds.width - x))
+          break if width <= 0
+
+          color = tab.active ? theme.selection : theme.foreground
+          style = tab.active ? "#{@id}.active" : "#{@id}.inactive"
+          commands << DrawCommand.text(Rect.new(x, @bounds.y, width, 1), label, color, style)
+          x += width
+        end
+        super(context, commands)
+      end
+    end
+
+    class Split < Widget
+      enum Direction
+        Horizontal
+        Vertical
+      end
+
+      getter direction : Direction
+
+      def initialize(@direction : Direction, children : Array(Widget), id : String = "split")
+        super(id, children: children)
+      end
+
+      def layout(bounds : Rect) : self
+        super(bounds)
+        return self if @children.empty?
+
+        if @direction.horizontal?
+          child_width = Math.max(1, bounds.width // @children.size)
+          @children.each_with_index do |child, idx|
+            x = bounds.x + idx * child_width
+            width = idx == @children.size - 1 ? bounds.x + bounds.width - x : child_width
+            child.layout(Rect.new(x, bounds.y, width, bounds.height))
+          end
+        else
+          child_height = Math.max(1, bounds.height // @children.size)
+          @children.each_with_index do |child, idx|
+            y = bounds.y + idx * child_height
+            height = idx == @children.size - 1 ? bounds.y + bounds.height - y : child_height
+            child.layout(Rect.new(bounds.x, y, bounds.width, height))
+          end
+        end
+        self
+      end
+    end
+
     struct TextBuffer
       getter title : String
       getter content : String
@@ -250,27 +416,89 @@ module Commander
       WorkspaceView.new(snapshot)
     end
 
+    class FilePanelWidget < Widget
+      getter panel : FilePanelView
+
+      def initialize(@panel : FilePanelView, id : String? = nil)
+        id ||= "file-panel-#{@panel.index}"
+        super(id)
+      end
+
+      def render(context : RenderContext, commands : Array(DrawCommand)) : Nil
+        theme = context.theme
+        commands << DrawCommand.stroke_rect(@bounds, theme.border, @panel.active ? "#{@id}.active.border" : "#{@id}.border")
+        commands << DrawCommand.text(Rect.new(@bounds.x + 1, @bounds.y, Math.max(1, @bounds.width - 2), 1), @panel.title, theme.accent, "#{@id}.title")
+
+        list_bounds = Rect.new(@bounds.x + 1, @bounds.y + 1, Math.max(0, @bounds.width - 2), Math.max(0, @bounds.height - 2))
+        list_items = @panel.entries.map_with_index do |entry, row|
+          ListItem.new([entry.name, entry.size, entry.modified], selected: row == @panel.cursor, metadata: {"uri" => entry.uri})
+        end
+        ListView.new(["Name", "Size", "Modify time"], list_items, id: "#{@id}.list").layout(list_bounds).render(context, commands)
+        super(context, commands)
+      end
+    end
+
+    class StatusBar < Widget
+      getter view : WorkspaceView
+
+      def initialize(@view : WorkspaceView, id : String = "status-bar")
+        super(id)
+      end
+
+      def render(context : RenderContext, commands : Array(DrawCommand)) : Nil
+        theme = context.theme
+        selected = @view.panels.find(&.active).try(&.selected_entry).try(&.name) || ""
+        commands << DrawCommand.fill_rect(Rect.new(@bounds.x, @bounds.y, @bounds.width, 1), theme.background, "#{@id}.selected.background")
+        commands << DrawCommand.text(Rect.new(@bounds.x + 1, @bounds.y, Math.max(1, @bounds.width - 2), 1), selected, theme.foreground, "#{@id}.selected")
+
+        if @bounds.height > 1
+          commands << DrawCommand.fill_rect(Rect.new(@bounds.x, @bounds.y + 1, @bounds.width, 1), theme.accent, "#{@id}.background")
+          commands << DrawCommand.text(Rect.new(@bounds.x + 1, @bounds.y + 1, Math.max(1, @bounds.width - 2), 1), @view.status_text, theme.status, "#{@id}.text")
+        end
+        super(context, commands)
+      end
+    end
+
+    class WorkspaceWidget < Widget
+      getter view : WorkspaceView
+
+      def initialize(@view : WorkspaceView, id : String = "workspace")
+        super(id)
+        panel_widgets = @view.panels.map { |panel| FilePanelWidget.new(panel).as(Widget) }
+        @tab_bar = TabBar.new(@view.tabs)
+        @panel_split = Split.new(Split::Direction::Horizontal, panel_widgets, id: "workspace-panels")
+        @status_bar = StatusBar.new(@view)
+        @children = [@tab_bar.as(Widget), @panel_split.as(Widget), @status_bar.as(Widget)]
+      end
+
+      def layout(bounds : Rect) : self
+        super(bounds)
+        top = bounds.y
+        tab_height = @view.tabs.any? ? 1 : 0
+        @tab_bar.layout(Rect.new(bounds.x, top, bounds.width, tab_height))
+        top += tab_height
+        status_height = 2
+        panel_height = Math.max(0, bounds.height - tab_height - status_height)
+        @panel_split.layout(Rect.new(bounds.x, top, bounds.width, panel_height))
+        @status_bar.layout(Rect.new(bounds.x, bounds.y + bounds.height - status_height, bounds.width, status_height))
+        self
+      end
+
+      def render(context : RenderContext, commands : Array(DrawCommand)) : Nil
+        commands << DrawCommand.fill_rect(@bounds, context.theme.background, "#{@id}.background")
+        @children.each(&.render(context, commands))
+      end
+    end
+
     module WorkspaceRenderer
       extend self
 
       MENU_ITEMS = ["Left", "File", "Command", "Options", "Right"]
 
       def render(view : WorkspaceView, bounds : Rect, theme : Theme = Theme.new) : DrawFrame
-        commands = [] of DrawCommand
-        commands << DrawCommand.fill_rect(bounds, theme.background, "workspace.background")
+        frame = WorkspaceWidget.new(view).render_frame(Rect.new(bounds.x, bounds.y + 1, bounds.width, Math.max(0, bounds.height - 1)), theme)
+        commands = frame.commands
         render_menu(commands, bounds, theme)
-
-        top = bounds.y + 1
-        if view.tabs.any?
-          render_tabs(commands, view, Rect.new(bounds.x, top, bounds.width, 1), theme)
-          top += 1
-        end
-
-        status_height = 2
-        panel_height = Math.max(0, bounds.height - (top - bounds.y) - status_height)
-        render_panels(commands, view, Rect.new(bounds.x, top, bounds.width, panel_height), theme)
-        render_status(commands, view, Rect.new(bounds.x, bounds.y + bounds.height - status_height, bounds.width, status_height), theme)
-
         DrawFrame.new(bounds, theme, commands)
       end
 

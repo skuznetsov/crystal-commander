@@ -128,10 +128,80 @@ describe Commander::UI do
 
     view.tabs.first.title.should eq("Main")
     frame.commands.map(&.kind).should contain(Commander::UI::DrawKind::Text)
-    frame.commands.map(&.style).should contain("panel.selection")
+    frame.commands.map(&.style).should contain("file-panel-0.list.selection")
     frame.commands.compact_map(&.text).should contain("README.md")
     appkit_stub.last_commands.should eq(terminal_stub.last_commands)
     appkit_stub.last_commands.should eq(frame.commands)
+  end
+
+  it "builds a retained workspace widget tree with tabs, split panels, and list rows" do
+    left_entry = Commander::EntrySnapshot.new(
+      name: "left.txt",
+      size: "10B",
+      modified: "Apr 21 22:00",
+      path: "/tmp/left.txt",
+      flags: 0_u32
+    )
+    right_entry = Commander::EntrySnapshot.new(
+      name: "right.txt",
+      size: "20B",
+      modified: "Apr 21 22:01",
+      path: "/tmp/right.txt",
+      flags: 0_u32
+    )
+    left = Commander::PanelSnapshot.new(
+      index: 0,
+      path: "/tmp",
+      display_path: "/tmp",
+      cursor: 0,
+      active: true,
+      marked_paths: [] of String,
+      entries: [left_entry]
+    )
+    right = Commander::PanelSnapshot.new(
+      index: 1,
+      path: "/var",
+      display_path: "/var",
+      cursor: 0,
+      active: false,
+      marked_paths: [] of String,
+      entries: [right_entry]
+    )
+    tab = Commander::TabSnapshot.new(
+      index: 0,
+      title: "Main",
+      active: true,
+      panel_count: 2,
+      active_panel: 0,
+      panel_uris: ["file:///tmp", "file:///var"]
+    )
+    snapshot = Commander::AppSnapshot.new(
+      active_panel: 0,
+      panel_count: 2,
+      running: true,
+      status_text: "Ready",
+      dry_run: false,
+      plugin_root: "plugins",
+      plugins: [] of Commander::PluginSnapshot,
+      plugin_runtimes: [] of Commander::PluginRuntimeSnapshot,
+      plugin_errors: [] of String,
+      commands: [] of Commander::CommandSnapshot,
+      pending_operation: nil,
+      preview: nil,
+      external_view: nil,
+      panels: [left, right],
+      active_tab: 0,
+      tabs: [tab]
+    )
+
+    widget = Commander::UI::WorkspaceWidget.new(Commander::UI.workspace(snapshot))
+    frame = widget.render_frame(Commander::UI::Rect.new(0, 0, 100, 30))
+
+    widget.children.map(&.id).should eq(["tab-bar", "workspace-panels", "status-bar"])
+    frame.commands.compact_map(&.text).should contain("left.txt")
+    frame.commands.compact_map(&.text).should contain("right.txt")
+    frame.commands.map(&.style).should contain("tab-bar.active")
+    frame.commands.map(&.style).should contain("file-panel-0.list.selection")
   end
 
   it "projects external viewer requests from app snapshots" do
