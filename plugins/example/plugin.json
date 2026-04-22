@@ -1,0 +1,22 @@
+{
+  "id": "example.hello",
+  "name": "Example Hello Plugin",
+  "version": "0.1.0",
+  "api_version": "0.1",
+  "runtime": "lua",
+  "entrypoint": "main.lua",
+  "permissions": ["ui.status", "panel.read"],
+  "commands": [
+    {
+      "id": "example.hello.status",
+      "title": "Hello Status",
+      "description": "Show a status message from the example plugin."
+    }
+  ],
+  "key_bindings": [
+    {
+      "key": "ctrl-l",
+      "command": "example.hello.status"
+    }
+  ]
+}

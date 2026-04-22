@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+set -eu
+
+repo_dir="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+failed=0
+
+for file in "$repo_dir"/specs/*Spec.cs.md; do
+  [ -f "$file" ] || continue
+  for heading in "## Intent" "## MUST" "## MUST NOT"; do
+    if ! grep -q "^$heading" "$file"; then
+      printf 'missing %s in %s\n' "$heading" "$file" >&2
+      failed=1
+    fi
+  done
+  if ! grep -Eq '^## (Invariants|Checks)' "$file"; then
+    printf 'missing Invariants/Checks section in %s\n' "$file" >&2
+    failed=1
+  fi
+done
+
+if find "$repo_dir/specs" -name '*.codespeak.md' -print | grep -q .; then
+  printf 'old .codespeak.md spec names found; use *Spec.cs.md\n' >&2
+  failed=1
+fi
+
+exit "$failed"

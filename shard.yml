@@ -1,0 +1,7 @@
+name: commander
+version: 0.1.0
+crystal: ">= 1.13.0"
+license: MIT
+
+authors:
+  - Sergey

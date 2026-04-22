@@ -1,0 +1,57 @@
+# Commander Landmarks
+
+## LM-1: Crystal-first architecture
+
+Crystal owns file-manager behavior, panel state, commands, plugin decisions, and automation state. Objective-C++ owns AppKit rendering and event capture only.
+
+Evidence: `specs/ArchitectureSpec.cs.md`, `src/commander.cr`, `src/commander_renderer.mm`.
+
+Trust: `{F:0.8,G:0.8,R:0.8}` build and headless smoke passed; GUI smoke still pending.
+
+## LM-2: Renderer C ABI boundary
+
+Crystal talks to AppKit through `src/commander_renderer.h` and `src/renderer.cr`. Native code must copy Crystal strings before retaining data.
+
+Evidence: `specs/RendererAbiSpec.cs.md`, `src/renderer.cr`, `src/commander_renderer.h`.
+
+Trust: `{F:0.8,G:0.8,R:0.8}` build passed; GUI renderer behavior still pending manual smoke.
+
+## LM-3: Commands are the shared mutation path
+
+Keyboard, future menus, plugins, AppleScript, and debug automation converge on command IDs via `CommandRegistry` and `Keymap`.
+
+Evidence: `src/command_registry.cr`, `src/keymap.cr`, `specs/PluginsSpec.cs.md`, `specs/AutomationSpec.cs.md`.
+
+Trust: `{F:0.8,G:0.8,R:0.8}` build and headless command listing passed.
+
+## LM-4: Headless automation uses snapshots
+
+`COMMANDER_DUMP_STATE`, `COMMANDER_RUN_COMMAND`, and `COMMANDER_AUTOMATION_COMMAND_JSON` return JSON snapshots/responses without creating AppKit windows.
+
+Evidence: `src/snapshots.cr`, `src/automation_protocol.cr`, `src/commander.cr`, `scripts/commanderctl`.
+
+Trust: `{F:0.8,G:0.8,R:0.8}` headless state/command JSON smoke passed.
+
+## LM-5: Plugins are metadata-only until runtime gates open
+
+Plugin manifests are discovered and validated without executing plugin code. Lua/subprocess runtimes are stubs behind explicit enable gates.
+
+Evidence: `src/plugin_manifest.cr`, `src/plugin_host.cr`, `src/plugin_runtime.cr`, `plugins/example/plugin.json`.
+
+Trust: `{F:0.8,G:0.8,R:0.8}` build passed and plugin/runtime list smoke passed.
+
+## LM-6: Destructive file operations remain plan-only
+
+Delete and rename/move are pending-operation plans only. Copy and mkdir may execute under fail-closed policies; dry-run exists for headless mutation planning.
+
+Evidence: `src/file_operations.cr`, `src/commander.cr`, `specs/PanelsAndEventsSpec.cs.md`.
+
+Trust: `{F:0.8,G:0.7,R:0.8}` build passed and dry-run headless operation smoke passed.
+
+## LM-7: Grok is useful but must be bounded
+
+Grok ACP works on subscription/default auth and can perform useful source-grounded review/patches, but needs wrapper-enforced scope and timeout hygiene.
+
+Evidence: `scripts/grok_acp_delegate.py`, `scripts/grok_review`, `scripts/grok_worker`, `GROK_BETA_OBSERVATIONS.md`.
+
+Trust: `{F:0.8,G:0.7,R:0.8}` verified through ACP smoke and worker/review runs.

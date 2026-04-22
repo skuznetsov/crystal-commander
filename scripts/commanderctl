@@ -1,0 +1,168 @@
+#!/usr/bin/env sh
+set -eu
+
+repo_dir="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+command="${1:-state}"
+
+ensure_binary() {
+  if [ ! -x "$repo_dir/commander" ]; then
+    make -C "$repo_dir" commander >/dev/null
+  fi
+}
+
+case "$command" in
+  state)
+    shift || true
+    cd "$repo_dir"
+    ensure_binary
+    COMMANDER_DUMP_STATE=1 "$repo_dir/commander" "$@"
+    ;;
+  commands)
+    shift || true
+    cd "$repo_dir"
+    ensure_binary
+    COMMANDER_DUMP_STATE=1 "$repo_dir/commander" "$@" | python3 -c 'import json,sys; data=json.load(sys.stdin); [print("{}\t{}".format(c["id"], c["title"])) for c in data["commands"]]'
+    ;;
+  status)
+    shift || true
+    cd "$repo_dir"
+    ensure_binary
+    COMMANDER_DUMP_STATE=1 "$repo_dir/commander" "$@" | python3 -c 'import json,sys; print(json.load(sys.stdin)["status_text"])'
+    ;;
+  plugin-list)
+    shift || true
+    cd "$repo_dir"
+    ensure_binary
+    COMMANDER_DUMP_STATE=1 "$repo_dir/commander" "$@" | python3 -c 'import json,sys; data=json.load(sys.stdin); [print("{}\t{}\t{}".format(p["id"], p["runtime"], p["version"])) for p in data["plugins"]]'
+    ;;
+  runtime-list)
+    shift || true
+    cd "$repo_dir"
+    ensure_binary
+    COMMANDER_DUMP_STATE=1 "$repo_dir/commander" "$@" | python3 -c 'import json,sys; data=json.load(sys.stdin); [print("{}\t{}".format(r["name"], str(r["enabled"]).lower())) for r in data["plugin_runtimes"]]'
+    ;;
+  command)
+    shift || true
+    if [ "$#" -lt 1 ]; then
+      printf 'usage: %s command COMMAND_ID [PANEL_INDEX]\n' "$0" >&2
+      exit 2
+    fi
+    command_id="$1"
+    panel_index="${2:-0}"
+    cd "$repo_dir"
+    ensure_binary
+    COMMANDER_RUN_COMMAND="$command_id" COMMANDER_COMMAND_PANEL="$panel_index" "$repo_dir/commander"
+    ;;
+  command-json)
+    shift || true
+    if [ "$#" -lt 1 ]; then
+      printf 'usage: %s command-json JSON\n' "$0" >&2
+      exit 2
+    fi
+    json="$1"
+    cd "$repo_dir"
+    ensure_binary
+    COMMANDER_AUTOMATION_COMMAND_JSON="$json" "$repo_dir/commander"
+    ;;
+  command-json-file)
+    shift || true
+    if [ "$#" -lt 1 ]; then
+      printf 'usage: %s command-json-file FILE\n' "$0" >&2
+      exit 2
+    fi
+    json_file="$1"
+    cd "$repo_dir"
+    ensure_binary
+    COMMANDER_AUTOMATION_COMMAND_JSON="$(cat "$json_file")" "$repo_dir/commander"
+    ;;
+  open)
+    shift || true
+    if [ "$#" -lt 1 ]; then
+      printf 'usage: %s open PATH [PANEL_INDEX]\n' "$0" >&2
+      exit 2
+    fi
+    path="$1"
+    panel_index="${2:-0}"
+    cd "$repo_dir"
+    ensure_binary
+    COMMANDER_RUN_COMMAND="panel.open_path" COMMANDER_COMMAND_PANEL="$panel_index" COMMANDER_COMMAND_ARG="$path" "$repo_dir/commander"
+    ;;
+  view)
+    shift || true
+    if [ "$#" -lt 1 ]; then
+      printf 'usage: %s view PATH\n' "$0" >&2
+      exit 2
+    fi
+    path="$1"
+    cd "$repo_dir"
+    ensure_binary
+    COMMANDER_RUN_COMMAND="file.view_path" COMMANDER_COMMAND_ARG="$path" "$repo_dir/commander"
+    ;;
+  mkdir)
+    shift || true
+    if [ "$#" -lt 1 ]; then
+      printf 'usage: %s mkdir PATH [PANEL_INDEX] [--dry-run]\n' "$0" >&2
+      exit 2
+    fi
+    path="$1"
+    panel_index="${2:-0}"
+    dry_run="${3:-}"
+    cd "$repo_dir"
+    ensure_binary
+    if [ "$dry_run" = "--dry-run" ]; then
+      COMMANDER_DRY_RUN=1 COMMANDER_RUN_COMMAND="file.mkdir_named" COMMANDER_COMMAND_PANEL="$panel_index" COMMANDER_COMMAND_ARG="$path" "$repo_dir/commander"
+    else
+      COMMANDER_RUN_COMMAND="file.mkdir_named" COMMANDER_COMMAND_PANEL="$panel_index" COMMANDER_COMMAND_ARG="$path" "$repo_dir/commander"
+    fi
+    ;;
+  copy)
+    shift || true
+    if [ "$#" -lt 1 ]; then
+      printf 'usage: %s copy TARGET_DIR [PANEL_INDEX] [--dry-run]\n' "$0" >&2
+      exit 2
+    fi
+    target_dir="$1"
+    panel_index="${2:-0}"
+    dry_run="${3:-}"
+    cd "$repo_dir"
+    ensure_binary
+    if [ "$dry_run" = "--dry-run" ]; then
+      COMMANDER_DRY_RUN=1 COMMANDER_RUN_COMMAND="file.copy_to" COMMANDER_COMMAND_PANEL="$panel_index" COMMANDER_COMMAND_ARG="$target_dir" "$repo_dir/commander"
+    else
+      COMMANDER_RUN_COMMAND="file.copy_to" COMMANDER_COMMAND_PANEL="$panel_index" COMMANDER_COMMAND_ARG="$target_dir" "$repo_dir/commander"
+    fi
+    ;;
+  move)
+    shift || true
+    if [ "$#" -lt 1 ]; then
+      printf 'usage: %s move TARGET_DIR [PANEL_INDEX] [--dry-run]\n' "$0" >&2
+      exit 2
+    fi
+    target_dir="$1"
+    panel_index="${2:-0}"
+    dry_run="${3:-}"
+    cd "$repo_dir"
+    ensure_binary
+    if [ "$dry_run" = "--dry-run" ]; then
+      COMMANDER_DRY_RUN=1 COMMANDER_RUN_COMMAND="file.renmov_to" COMMANDER_COMMAND_PANEL="$panel_index" COMMANDER_COMMAND_ARG="$target_dir" "$repo_dir/commander"
+    else
+      COMMANDER_RUN_COMMAND="file.renmov_to" COMMANDER_COMMAND_PANEL="$panel_index" COMMANDER_COMMAND_ARG="$target_dir" "$repo_dir/commander"
+    fi
+    ;;
+  delete)
+    shift || true
+    panel_index="${1:-0}"
+    dry_run="${2:-}"
+    cd "$repo_dir"
+    ensure_binary
+    if [ "$dry_run" = "--dry-run" ]; then
+      COMMANDER_DRY_RUN=1 COMMANDER_RUN_COMMAND="file.delete_plan" COMMANDER_COMMAND_PANEL="$panel_index" "$repo_dir/commander"
+    else
+      COMMANDER_RUN_COMMAND="file.delete_plan" COMMANDER_COMMAND_PANEL="$panel_index" "$repo_dir/commander"
+    fi
+    ;;
+  *)
+    printf 'usage: %s state|commands|status|plugin-list|runtime-list|command|command-json|command-json-file|open|view|mkdir|copy|move|delete\n' "$0" >&2
+    exit 2
+    ;;
+esac
