@@ -28,6 +28,25 @@ static NSColor *mc_yellow(void);
 static NSColor *mc_green(void);
 static NSTextField *mc_label(NSRect frame, NSString *text, NSColor *textColor, NSFont *font, NSTextAlignment alignment);
 static NSString *str_from_c(const char *text);
+static uint32_t commander_normalize_modifiers(NSEventModifierFlags flags);
+
+static uint32_t commander_normalize_modifiers(NSEventModifierFlags flags)
+{
+    uint32_t normalized = 0;
+    if (flags & NSEventModifierFlagShift) {
+        normalized |= (1u << 17);
+    }
+    if (flags & NSEventModifierFlagControl) {
+        normalized |= (1u << 18);
+    }
+    if (flags & NSEventModifierFlagOption) {
+        normalized |= (1u << 19);
+    }
+    if (flags & NSEventModifierFlagCommand) {
+        normalized |= (1u << 20);
+    }
+    return normalized;
+}
 
 @interface CommanderRuntime : NSObject
 @property (nonatomic, assign) NSInteger panelCount;
@@ -299,7 +318,8 @@ static CommanderRuntime *runtime_from_handle(void *handle);
         return;
     }
 
-    [super keyDown:event];
+    // Crystal receives every key event above. Do not let AppKit type-select steal plugin shortcuts.
+    return;
 }
 
 - (void)mouseDown:(NSEvent *)event
@@ -583,7 +603,7 @@ static CommanderRuntime *runtime_from_handle(void *handle);
     data.type = COMMANDER_EVENT_KEY;
     data.panel = (int32_t)self.index;
     data.key_code = (int32_t)event.keyCode;
-    data.modifiers = (uint32_t)event.modifierFlags;
+    data.modifiers = commander_normalize_modifiers(event.modifierFlags);
     data.row = (int32_t)[self selectedRowIndex];
     data.x = event.locationInWindow.x;
     data.y = event.locationInWindow.y;
@@ -596,7 +616,7 @@ static CommanderRuntime *runtime_from_handle(void *handle);
     data.type = COMMANDER_EVENT_KEY;
     data.panel = (int32_t)self.index;
     data.key_code = keyCode;
-    data.modifiers = modifiers;
+    data.modifiers = commander_normalize_modifiers((NSEventModifierFlags)modifiers);
     data.row = (int32_t)[self selectedRowIndex];
     [self.runtime pushEvent:data];
 }
