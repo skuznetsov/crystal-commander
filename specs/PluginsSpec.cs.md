@@ -24,8 +24,9 @@ Plugins extend Commander through a safe Crystal-owned command API. Plugins may b
 - Unknown plugin key binding specs MUST be reported without executing plugin code.
 - Unsupported plugin runtimes MUST be reported before runtime initialization.
 - Unsupported plugin permissions MUST be reported before runtime initialization.
-- Manifest-declared commands MAY be registered as inert placeholders before runtime loading.
+- Manifest-declared commands MAY be registered before runtime loading, but execution MUST route through the manifest runtime when that runtime is enabled.
 - Lua or any embedded runtime MUST have an explicit safe API surface.
+- The Lua MVP MUST expose read-only snapshot data and status updates only.
 
 ## MUST NOT
 
@@ -43,16 +44,16 @@ commander.command("hello", function(ctx)
   commander.status("Hello from Lua")
 end)
 
-commander.key("ctrl-l", "hello")
-
-commander.panel_provider("recent", function(ctx)
-  return {
-    title = "Recent",
-    rows = {
-      { name = "README.md", kind = "file", size = 1234 },
-    }
-  }
-end)
+-- Available MVP context:
+-- ctx.command_id
+-- ctx.plugin_id
+-- ctx.active_panel
+-- ctx.panel.path
+-- ctx.panel.display_path
+-- ctx.panel.cursor
+-- ctx.panel.entries
+-- ctx.panel.selected_entry
+-- ctx.panel.marked_paths
 ```
 
 ## Recommended Phases
@@ -85,7 +86,12 @@ end)
 - Runtime dispatch MUST have access to loaded plugin directory and resolved entrypoint metadata.
 - Subprocess runtime MUST remain disabled until command protocol and permissions are explicit.
 - Subprocess runtime MUST require an explicit enable gate before spawning external processes.
-- Embedded Lua runtime MUST require an explicit enable gate until the safe API surface is implemented.
+- Lua runtime MUST require an explicit enable gate before executing plugin code.
+- Lua runtime MAY run through an external `lua`, `lua5.4`, or `luajit` binary while the API is kept snapshot-only.
+- Lua runtime MUST copy Crystal snapshot strings into the Lua script boundary rather than passing Crystal heap pointers.
+- Lua runtime MUST report plugin load and command execution errors as command status, not process crashes.
+- Lua MVP MUST NOT expose network, shell, arbitrary file reads, arbitrary file writes, or renderer access.
+- Lua MVP MAY expose `commander.command(id, fn)` and `commander.status(text)`.
 
 ## Invariants
 
@@ -93,19 +99,22 @@ end)
 - Keymaps bind physical keys/modifiers to command IDs; they are not the owner of command behavior.
 - Plugin APIs are versioned contracts.
 - Manifest parsing is metadata-only; runtime initialization is a separate step.
-- Placeholder plugin commands MUST NOT execute plugin code.
+- Manifest plugin commands MUST NOT execute plugin code unless their runtime is explicitly enabled.
 - Runtime entrypoints MUST be resolved relative to the plugin directory, not the process cwd.
 - Missing runtime entrypoints MUST be reported before runtime initialization.
 - Manifest load errors are plugin-local and MUST NOT prevent the core app from launching.
 - Plugin state cannot be the canonical source of panel state unless it is a declared virtual panel provider.
 - Disabling a plugin must leave the core commander usable.
+- Renderer keyboard events MUST preserve modifier bits needed by plugin key bindings.
 
 ## Checks
 
 - A plugin command can update status without touching renderer internals.
 - A plugin can read active panel snapshot without mutating it.
+- A Lua plugin can read `ctx.panel.selected_entry` and `ctx.panel.entries`.
 - Invalid plugin manifests are reported without executing plugin code.
 - Duplicate plugin command IDs are reported before runtime initialization.
 - A failing plugin command returns an error status and leaves the app running.
 - Destructive plugin operations require explicit Commander mediation.
 - Plugin hotkeys do not shadow core navigation unless explicitly configured.
+- A manifest key binding such as `ctrl-l` reaches Crystal command dispatch with normalized modifiers.

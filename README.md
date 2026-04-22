@@ -199,3 +199,40 @@ Runtime request/response structs are JSON-serializable so embedded Lua and futur
   "context": {"active_panel": 0}
 }
 ```
+
+## Lua plugin MVP
+
+Lua plugin execution is disabled by default and must be enabled explicitly:
+
+```bash
+COMMANDER_ENABLE_LUA_PLUGINS=1 sh scripts/commanderctl command example.hello.status 0
+COMMANDER_ENABLE_LUA_PLUGINS=1 ./commander
+```
+
+The runtime looks for `COMMANDER_LUA_BIN`, then `lua`, `lua5.4`, and `luajit` on `PATH`.
+
+Available Lua API:
+
+```lua
+commander.command("example.hello.status", function(ctx)
+  commander.status("Hello from Lua plugin metadata example")
+end)
+```
+
+Available MVP context fields:
+
+- `ctx.command_id`
+- `ctx.plugin_id`
+- `ctx.active_panel`
+- `ctx.panel.path`
+- `ctx.panel.display_path`
+- `ctx.panel.cursor`
+- `ctx.panel.entries`
+- `ctx.panel.selected_entry`
+- `ctx.panel.marked_paths`
+
+Current safety boundaries:
+
+- Lua receives copied snapshot data, not Crystal heap pointers.
+- Lua can update status text through `commander.status`.
+- Lua cannot directly mutate panels, call AppKit, call renderer C ABI, run shell commands through Commander, or perform mediated file operations yet.
