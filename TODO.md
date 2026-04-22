@@ -231,6 +231,7 @@ Definition of Done:
 - `vfs.probe_uri` probes URIs through the VFS registry without mutating panels
 - `vfs.execute_pending_action` executes the first pending read-only plugin VFS action (`stat`/`list`) through the registry
 - `COMMANDER_AUTOMATION_COMMANDS_JSON` runs multiple automation commands in one headless process for stateful smoke tests
+- `scripts/commanderctl command-seq-json` and `command-seq-json-file` wrap same-process command arrays
 - `VirtualFS::MemoryProvider` simulates supported remote schemes without network or credentials
 - Unsupported schemes fail before I/O with typed `VfsError`
 - Tests cover registry dispatch, unsupported scheme, binary-safe local read, and local mutation operations
@@ -255,6 +256,7 @@ Evidence:
 - Added read-only pending plugin VFS action executor command
 - Added headless multi-command automation JSON mode for same-process stateful checks
 - Added `VirtualFS::MemoryProvider` for deterministic remote-like tests and offline mutation checks
+- Added `commanderctl` wrappers for same-process command arrays
 - Validation: `crystal spec` passed with 69 examples; `sh scripts/spec_check` passed; `make clean && make commander` passed; `sh scripts/commanderctl state` returned JSON with `uri` fields; temporary Lua plugin command returned one pending VFS action; `vfs.probe_uri` succeeded for file URI and failed closed for s3 URI; `vfs.execute_pending_action` reports no action when none is pending; multi-command automation executed a Lua-produced local VFS stat action in one process
 
 Remaining:

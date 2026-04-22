@@ -75,6 +75,28 @@ case "$command" in
     ensure_binary
     COMMANDER_AUTOMATION_COMMAND_JSON="$(cat "$json_file")" "$repo_dir/commander"
     ;;
+  command-seq-json)
+    shift || true
+    if [ "$#" -lt 1 ]; then
+      printf 'usage: %s command-seq-json JSON_ARRAY\n' "$0" >&2
+      exit 2
+    fi
+    json="$1"
+    cd "$repo_dir"
+    ensure_binary
+    COMMANDER_AUTOMATION_COMMANDS_JSON="$json" "$repo_dir/commander"
+    ;;
+  command-seq-json-file)
+    shift || true
+    if [ "$#" -lt 1 ]; then
+      printf 'usage: %s command-seq-json-file FILE\n' "$0" >&2
+      exit 2
+    fi
+    json_file="$1"
+    cd "$repo_dir"
+    ensure_binary
+    COMMANDER_AUTOMATION_COMMANDS_JSON="$(cat "$json_file")" "$repo_dir/commander"
+    ;;
   open)
     shift || true
     if [ "$#" -lt 1 ]; then
@@ -162,7 +184,7 @@ case "$command" in
     fi
     ;;
   *)
-    printf 'usage: %s state|commands|status|plugin-list|runtime-list|command|command-json|command-json-file|open|view|mkdir|copy|move|delete\n' "$0" >&2
+    printf 'usage: %s state|commands|status|plugin-list|runtime-list|command|command-json|command-json-file|command-seq-json|command-seq-json-file|open|view|mkdir|copy|move|delete\n' "$0" >&2
     exit 2
     ;;
 esac
