@@ -15,6 +15,7 @@ OBJ_REL = src/objc_bridge.o src/commander_renderer.o
 OBJ_ABS = $(addprefix $(CURDIR)/,$(OBJ_REL))
 CRYSTAL = crystal
 CRYSTAL_SRC = src/commander.cr
+CRYSTAL_SRCS = $(shell find src -name '*.cr')
 
 .PHONY: all app clean run run-open
 
@@ -26,7 +27,7 @@ src/objc_bridge.o: $(SRC_C) src/commander_renderer.h
 src/commander_renderer.o: $(SRC_MM) src/commander_renderer.h
 	$(CXX) $(CXXFLAGS) -c $(SRC_MM) -o $(CURDIR)/$@
 
-$(TARGET): $(OBJ_REL) $(CRYSTAL_SRC)
+$(TARGET): $(OBJ_REL) $(CRYSTAL_SRCS)
 	$(CRYSTAL) build $(CRYSTAL_SRC) -o $(TARGET) --link-flags "$(OBJ_ABS) $(LDFLAGS)"
 
 app: $(TARGET)
