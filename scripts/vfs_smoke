@@ -1,0 +1,20 @@
+#!/usr/bin/env sh
+set -eu
+
+repo_dir="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+cd "$repo_dir"
+
+if [ ! -x "$repo_dir/commander" ]; then
+  make commander >/dev/null
+fi
+
+file_uri="file://$repo_dir"
+probe_json="$(COMMANDER_RUN_COMMAND=vfs.probe_uri COMMANDER_COMMAND_ARG="$file_uri" "$repo_dir/commander")"
+printf '%s\n' "$probe_json" | python3 -c 'import json,sys; data=json.load(sys.stdin); assert data["status_text"].startswith("VFS probe file://"), data["status_text"]; print(data["status_text"])'
+
+s3_json="$(COMMANDER_RUN_COMMAND=vfs.probe_uri COMMANDER_COMMAND_ARG="s3://bucket/prefix" "$repo_dir/commander")"
+printf '%s\n' "$s3_json" | python3 -c 'import json,sys; data=json.load(sys.stdin); assert "provider is not configured" in data["status_text"], data["status_text"]; print(data["status_text"])'
+
+sequence='[{"command_id":"example.vfs_probe.stat_panel"},{"command_id":"vfs.execute_pending_action"}]'
+plugin_json="$(COMMANDER_ENABLE_LUA_PLUGINS=1 COMMANDER_AUTOMATION_COMMANDS_JSON="$sequence" "$repo_dir/commander")"
+printf '%s\n' "$plugin_json" | python3 -c 'import json,sys; data=json.load(sys.stdin); assert data["status_text"].startswith("Plugin VFS action stat file://"), data["status_text"]; assert data["snapshot"]["plugin_actions"][0]["operation"] == "stat"; print(data["status_text"])'

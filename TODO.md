@@ -234,6 +234,7 @@ Definition of Done:
 - `scripts/commanderctl command-seq-json` and `command-seq-json-file` wrap same-process command arrays
 - `VirtualFS::MemoryProvider` simulates supported remote schemes without network or credentials
 - `plugins/vfs_probe` provides a repo-local Lua VFS intent example
+- `scripts/vfs_smoke` verifies VFS probe, fail-closed remote probe, and Lua VFS intent execution without GUI
 - Unsupported schemes fail before I/O with typed `VfsError`
 - Tests cover registry dispatch, unsupported scheme, binary-safe local read, and local mutation operations
 - `crystal spec`, `sh scripts/spec_check`, and `make commander` pass
@@ -259,7 +260,8 @@ Evidence:
 - Added `VirtualFS::MemoryProvider` for deterministic remote-like tests and offline mutation checks
 - Added `commanderctl` wrappers for same-process command arrays
 - Added repo-local Lua VFS probe plugin example
-- Validation: `crystal spec` passed with 69 examples; `sh scripts/spec_check` passed; `make clean && make commander` passed; `sh scripts/commanderctl state` returned JSON with `uri` fields; Lua VFS probe plugin returned one pending VFS action; `vfs.probe_uri` succeeded for file URI and failed closed for s3 URI; `vfs.execute_pending_action` reports no action when none is pending; multi-command automation executed a Lua-produced local VFS stat action in one process
+- Added `scripts/vfs_smoke` for no-GUI VFS/Lua automation checks
+- Validation: `crystal spec` passed with 69 examples; `sh scripts/spec_check` passed; `make clean && make commander` passed; `sh scripts/commanderctl state` returned JSON with `uri` fields; Lua VFS probe plugin returned one pending VFS action; `vfs.probe_uri` succeeded for file URI and failed closed for s3 URI; `vfs.execute_pending_action` reports no action when none is pending; multi-command automation executed a Lua-produced local VFS stat action in one process; `scripts/vfs_smoke` passed
 
 Remaining:
 
