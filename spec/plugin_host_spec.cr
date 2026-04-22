@@ -91,6 +91,54 @@ describe Commander::PluginHost do
     end
   end
 
+  it "accepts supported VFS read permissions" do
+    with_temp_plugin_root do |root|
+      plug_dir = File.join(root, "vfs")
+      Dir.mkdir(plug_dir)
+      manifest_json = {
+        "id" => "vfs.plug",
+        "name" => "VFS",
+        "version" => "0.1",
+        "api_version" => "0.1",
+        "runtime" => "lua",
+        "entrypoint" => nil,
+        "permissions" => ["vfs.read:file", "vfs.read:sftp", "vfs.read:*"],
+        "commands" => [] of Hash(String, String),
+        "key_bindings" => [] of Hash(String, String),
+      }.to_json
+      File.write(File.join(plug_dir, "plugin.json"), manifest_json)
+
+      host = Commander::PluginHost.new(root)
+      host.load_manifests
+
+      host.load_errors.should be_empty
+    end
+  end
+
+  it "rejects unsupported VFS read schemes" do
+    with_temp_plugin_root do |root|
+      plug_dir = File.join(root, "bad-vfs")
+      Dir.mkdir(plug_dir)
+      manifest_json = {
+        "id" => "bad.vfs.plug",
+        "name" => "Bad VFS",
+        "version" => "0.1",
+        "api_version" => "0.1",
+        "runtime" => "lua",
+        "entrypoint" => nil,
+        "permissions" => ["vfs.read:ftp"],
+        "commands" => [] of Hash(String, String),
+        "key_bindings" => [] of Hash(String, String),
+      }.to_json
+      File.write(File.join(plug_dir, "plugin.json"), manifest_json)
+
+      host = Commander::PluginHost.new(root)
+      host.load_manifests
+
+      host.load_errors.any?(&.includes?("unsupported permission vfs.read:ftp")).should be_true
+    end
+  end
+
   it "detects duplicate command ids across manifests" do
     with_temp_plugin_root do |root|
       p1 = File.join(root, "p1"); Dir.mkdir(p1)

@@ -322,6 +322,11 @@ class CommanderApp
   end
 
   def run : Nil
+    if commands_json = automation_commands_json_requested
+      puts handle_automation_commands_json(commands_json).to_json
+      return
+    end
+
     if command_json = automation_command_json_requested
       puts handle_automation_command_json(command_json).to_json
       return
@@ -410,6 +415,10 @@ class CommanderApp
 
   private def automation_command_json_requested : String?
     ENV["COMMANDER_AUTOMATION_COMMAND_JSON"]?
+  end
+
+  private def automation_commands_json_requested : String?
+    ENV["COMMANDER_AUTOMATION_COMMANDS_JSON"]?
   end
 
   private def headless_command_panel : Int32
@@ -1202,6 +1211,20 @@ class CommanderApp
     handle_automation_command(command)
   rescue ex : JSON::ParseException | JSON::SerializableError
     @status_text = "Automation JSON command failed"
+    Commander::AutomationResponse.new(false, @status_text, debug_snapshot, ex.message)
+  end
+
+  private def handle_automation_commands_json(commands_json : String) : Commander::AutomationResponse
+    commands = Array(Commander::AutomationCommand).from_json(commands_json)
+    ok = true
+    commands.each do |command|
+      response = handle_automation_command(command)
+      ok = false unless response.ok
+      break unless response.ok
+    end
+    Commander::AutomationResponse.new(ok, @status_text, debug_snapshot, ok ? nil : @status_text)
+  rescue ex : JSON::ParseException | JSON::SerializableError
+    @status_text = "Automation JSON command list failed"
     Commander::AutomationResponse.new(false, @status_text, debug_snapshot, ex.message)
   end
 

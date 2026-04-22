@@ -6,9 +6,9 @@ module Commander
     include JSON::Serializable
 
     getter command_id : String
-    getter panel_index : Int32
-    getter argument : String?
-    getter dry_run : Bool
+    getter panel_index : Int32 = 0
+    getter argument : String? = nil
+    getter dry_run : Bool = false
 
     def initialize(@command_id : String, @panel_index : Int32 = 0, @argument : String? = nil, @dry_run : Bool = false)
     end

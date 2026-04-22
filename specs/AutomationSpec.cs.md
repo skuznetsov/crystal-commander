@@ -55,6 +55,8 @@ Automation makes Commander observable and controllable for debugging, smoke test
 
 ## JSON Protocol Draft
 
+Single command:
+
 ```json
 {
   "command_id": "panel.open_path",
@@ -62,6 +64,15 @@ Automation makes Commander observable and controllable for debugging, smoke test
   "argument": "/tmp",
   "dry_run": false
 }
+```
+
+Same-process command sequence:
+
+```json
+[
+  {"command_id": "plugin.command", "panel_index": 0},
+  {"command_id": "vfs.execute_pending_action", "panel_index": 0}
+]
 ```
 
 Responses include `ok`, `status_text`, and a full `AppSnapshot`.
@@ -74,6 +85,8 @@ Responses include `ok`, `status_text`, and a full `AppSnapshot`.
 - Headless command execution must return a JSON snapshot that includes resulting status text.
 - Headless command execution MAY pass one string argument through `CommandContext`, but non-headless calls MUST pass arguments explicitly.
 - Headless JSON automation command execution MUST use `AutomationCommand` and return `AutomationResponse`.
+- Headless JSON automation command sequence execution MUST use `Array(AutomationCommand)` and preserve state between commands in the same process.
+- Omitted optional automation command fields MUST default to `panel_index=0`, `argument=nil`, and `dry_run=false`.
 - Malformed or schema-invalid JSON automation commands MUST return structured error responses rather than raw stack traces.
 - Automation responses SHOULD set `ok=false` when command dispatch fails.
 - Headless state/command modes MUST NOT create AppKit windows or require renderer lifecycle.
@@ -97,6 +110,7 @@ Responses include `ok`, `status_text`, and a full `AppSnapshot`.
 - Verify `scripts/commanderctl command <id>` routes through `CommandRegistry` and emits JSON.
 - Verify `scripts/commanderctl command-json JSON` routes through `AutomationCommand`.
 - Verify `scripts/commanderctl command-json-file FILE` routes through `AutomationCommand`.
+- Verify `COMMANDER_AUTOMATION_COMMANDS_JSON` executes an array of commands in one process and preserves pending state between them.
 - Verify `scripts/commanderctl open PATH PANEL` routes to `panel.open_path`.
 - Verify `scripts/commanderctl view PATH` routes to read-only `file.view_path`.
 - Verify `scripts/commanderctl mkdir PATH PANEL` fails if the path already exists.

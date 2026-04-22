@@ -1,6 +1,7 @@
 require "./plugin_manifest"
 require "./command_registry"
 require "./keymap"
+require "./virtual_fs"
 
 module Commander
   struct LoadedPlugin
@@ -109,7 +110,7 @@ module Commander
         end
 
         manifest.permissions.each do |permission|
-          unless SUPPORTED_PERMISSIONS.includes?(permission)
+          unless supported_permission?(permission)
             @load_errors << "#{manifest.id}: unsupported permission #{permission}"
           end
         end
@@ -139,6 +140,14 @@ module Commander
           @load_errors << "#{manifest.id}: key binding references undeclared command #{binding.command}"
         end
       end
+    end
+
+    private def supported_permission?(permission : String) : Bool
+      return true if SUPPORTED_PERMISSIONS.includes?(permission)
+      return false unless permission.starts_with?("vfs.read:")
+
+      scheme = permission.split(":", 2)[1]
+      scheme == "*" || VirtualFS::SUPPORTED_SCHEMES.includes?(scheme)
     end
   end
 end
