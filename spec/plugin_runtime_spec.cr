@@ -19,6 +19,7 @@ private def runtime_snapshot_context(
     commands: [] of Commander::CommandSnapshot,
     pending_operation: nil,
     preview: nil,
+    external_view: nil,
     panels: panels
   )
 end

@@ -6,6 +6,7 @@ require "./plugin_host"
 require "./plugin_runtime"
 require "./file_operations"
 require "./file_preview"
+require "./ui_api"
 require "./automation_server"
 
 def home_dir : String
@@ -292,6 +293,7 @@ class CommanderApp
   @dry_run : Bool
   @pending_operation : Commander::FileOperationPlan?
   @preview : Commander::PreviewSnapshot?
+  @external_view : Commander::ExternalViewSnapshot?
 
   def initialize
     @panel_count = panel_count_env
@@ -311,6 +313,7 @@ class CommanderApp
     @dry_run = dry_run_requested?
     @pending_operation = nil
     @preview = nil
+    @external_view = nil
     @plugin_host.load_manifests
     register_builtin_commands
     register_plugin_manifest_commands
@@ -524,6 +527,19 @@ class CommanderApp
         view_path(path)
       else
         update_status("View path requires COMMANDER_COMMAND_ARG")
+      end
+    end
+
+    @commands.register("file.external_view", "External view", "Plan opening the selected file in an external viewer") do |ctx|
+      external_view_selected_file(ctx.panel_index)
+    end
+
+    @commands.register("file.external_view_path", "External view path", "Plan opening a provided file path in an external viewer") do |ctx|
+      path = ctx.argument
+      if path && !path.empty?
+        external_view_path(path)
+      else
+        update_status("External view path requires COMMANDER_COMMAND_ARG")
       end
     end
 
@@ -904,6 +920,30 @@ class CommanderApp
     view_path(selected.path)
   end
 
+  private def external_view_selected_file(panel_index : Int32) : Nil
+    selected = @panels[panel_index].selected
+    unless selected
+      @external_view = nil
+      update_status("External view pending: no selected entry")
+      return
+    end
+
+    external_view_path(selected.path)
+  end
+
+  private def external_view_path(path : String) : Nil
+    expanded = File.expand_path(path)
+    unless File.file?(expanded)
+      @external_view = nil
+      update_status("External view failed: not a regular file")
+      return
+    end
+
+    request = Commander::UI::ExternalViewRequest.new(expanded, readonly: true)
+    @external_view = Commander::ExternalViewSnapshot.new(request.path, request.readonly, request.preferred_app)
+    update_status("External view planned: #{File.basename(expanded)}")
+  end
+
   private def view_path(path : String) : Nil
     preview = Commander::FilePreview.load(path)
     @preview = preview
@@ -1020,6 +1060,7 @@ class CommanderApp
       commands: @commands.to_snapshots,
       pending_operation: @pending_operation.try(&.to_snapshot),
       preview: @preview,
+      external_view: @external_view,
       panels: panels
     )
   end

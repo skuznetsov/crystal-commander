@@ -96,6 +96,10 @@ module Commander
 
       def initialize(@path : String, @readonly : Bool = true, @preferred_app : String? = nil)
       end
+
+      def self.from_snapshot(snapshot : ExternalViewSnapshot) : ExternalViewRequest
+        new(snapshot.path, snapshot.readonly, snapshot.preferred_app)
+      end
     end
 
     struct FilePanelView
@@ -129,12 +133,14 @@ module Commander
       getter status_text : String
       getter panels : Array(FilePanelView)
       getter command_ids : Array(String)
+      getter external_view : ExternalViewRequest?
 
       def initialize(snapshot : AppSnapshot)
         @active_panel = snapshot.active_panel
         @status_text = snapshot.status_text
         @panels = snapshot.panels.map { |panel| FilePanelView.new(panel) }
         @command_ids = snapshot.commands.map(&.id)
+        @external_view = snapshot.external_view.try { |view| ExternalViewRequest.from_snapshot(view) }
       end
     end
 

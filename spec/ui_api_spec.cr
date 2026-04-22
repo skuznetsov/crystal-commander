@@ -33,6 +33,7 @@ describe Commander::UI do
       commands: [command],
       pending_operation: nil,
       preview: nil,
+      external_view: nil,
       panels: [panel]
     )
 
@@ -51,5 +52,29 @@ describe Commander::UI do
     theme.accent.should eq("cyan")
     buffer.readonly.should be_true
     request.readonly.should be_true
+  end
+
+  it "projects external viewer requests from app snapshots" do
+    external_view = Commander::ExternalViewSnapshot.new("/tmp/README.md", true, nil)
+    snapshot = Commander::AppSnapshot.new(
+      active_panel: 0,
+      panel_count: 1,
+      running: true,
+      status_text: "External view planned",
+      dry_run: false,
+      plugin_root: "plugins",
+      plugins: [] of Commander::PluginSnapshot,
+      plugin_runtimes: [] of Commander::PluginRuntimeSnapshot,
+      plugin_errors: [] of String,
+      commands: [] of Commander::CommandSnapshot,
+      pending_operation: nil,
+      preview: nil,
+      external_view: external_view,
+      panels: [] of Commander::PanelSnapshot
+    )
+
+    view = Commander::UI.workspace(snapshot)
+    view.external_view.not_nil!.path.should eq("/tmp/README.md")
+    view.external_view.not_nil!.readonly.should be_true
   end
 end

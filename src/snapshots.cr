@@ -83,6 +83,17 @@ module Commander
     end
   end
 
+  struct ExternalViewSnapshot
+    include JSON::Serializable
+
+    getter path : String
+    getter readonly : Bool
+    getter preferred_app : String?
+
+    def initialize(@path : String, @readonly : Bool = true, @preferred_app : String? = nil)
+    end
+  end
+
   struct PluginSnapshot
     include JSON::Serializable
 
@@ -137,6 +148,7 @@ module Commander
     getter commands : Array(CommandSnapshot)
     getter pending_operation : OperationPlanSnapshot?
     getter preview : PreviewSnapshot?
+    getter external_view : ExternalViewSnapshot?
     getter panels : Array(PanelSnapshot)
 
     def initialize(
@@ -152,6 +164,7 @@ module Commander
       @commands : Array(CommandSnapshot),
       @pending_operation : OperationPlanSnapshot?,
       @preview : PreviewSnapshot?,
+      @external_view : ExternalViewSnapshot?,
       @panels : Array(PanelSnapshot)
     )
     end
