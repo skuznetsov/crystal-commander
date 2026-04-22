@@ -10,7 +10,7 @@ Commander must treat local disks and remote providers (SSH/SFTP/S3) uniformly so
 - A VfsRegistry MUST dispatch all file operations to the provider registered for the URI scheme; unknown schemes MUST raise before any I/O.
 - The provider interface MUST expose exactly these operations: stat, list, read, write, mkdir, delete, rename, copy, open_stream.
 - Auth credentials and private keys MUST never reside in Crystal process memory longer than the duration of a single provider call or an explicit short-lived session handle.
-- Providers MUST surface typed VfsError values (NotFound, PermissionDenied, AuthFailed, NetworkError, Offline, UnsupportedOperation, QuotaExceeded) rather than strings or exceptions that leak implementation details.
+- Providers MUST surface typed VfsError values (NotFound, PermissionDenied, AuthFailed, NetworkError, Offline, UnsupportedOperation, QuotaExceeded, UnsupportedScheme) rather than strings or exceptions that leak implementation details.
 - Panel navigation (cd, up, goto, ~ expansion) MUST resolve relative segments against the current URI using the owning provider; the resulting URI MUST be stored as the panel location.
 - All local command semantics (mkdir foo, cp bar baz, rm -r, rename) MUST continue to work when the current location is remote; cross-provider operations MUST be coordinated by Commander core using read/write or native provider copy when available.
 - Caching MUST be provider-supplied and optional; metadata cache entries MUST carry a staleness flag when served offline.

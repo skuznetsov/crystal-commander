@@ -55,3 +55,11 @@ Grok ACP works on subscription/default auth and can perform useful source-ground
 Evidence: `scripts/grok_acp_delegate.py`, `scripts/grok_review`, `scripts/grok_worker`, `GROK_BETA_OBSERVATIONS.md`.
 
 Trust: `{F:0.8,G:0.7,R:0.8}` verified through ACP smoke and worker/review runs.
+
+## LM-8: VirtualFS Phase 0 foundation exists
+
+VirtualFS has a typed URI, provider, registry, and local file provider foundation. SSH/SFTP/S3 are recognized URI schemes, but remote provider implementations are not connected yet.
+
+Evidence: `src/virtual_fs.cr`, `spec/virtual_fs_spec.cr`, `docs/specs/VirtualFileSystemSpec.cs.md`.
+
+Trust: `{F:0.8,G:0.6,R:0.8}` `crystal spec`, `sh scripts/spec_check`, and `make commander` passed; panel integration remains pending.

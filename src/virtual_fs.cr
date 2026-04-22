@@ -1,5 +1,3 @@
-require "uri"
-
 module Commander
   module VirtualFS
     SUPPORTED_SCHEMES = Set{"file", "ssh", "sftp", "s3"}
@@ -23,6 +21,33 @@ module Commander
       OpenStream
     end
 
+    enum ErrorCode
+      NotFound
+      PermissionDenied
+      AuthFailed
+      NetworkError
+      Offline
+      UnsupportedOperation
+      QuotaExceeded
+      UnsupportedScheme
+    end
+
+    struct VfsError
+      getter code : ErrorCode
+      getter message : String
+
+      def initialize(@code : ErrorCode, @message : String)
+      end
+    end
+
+    class VfsException < Exception
+      getter vfs_error : VfsError
+
+      def initialize(@vfs_error : VfsError)
+        super(@vfs_error.message)
+      end
+    end
+
     struct VirtualPath
       getter scheme : String
       getter authority : String?
@@ -33,19 +58,24 @@ module Commander
 
       def self.parse(value : String) : VirtualPath
         if value.includes?("://")
-          uri = URI.parse(value)
-          scheme = uri.scheme || "file"
-          raise ArgumentError.new("unsupported VFS scheme: #{scheme}") unless SUPPORTED_SCHEMES.includes?(scheme)
+          scheme, rest = value.split("://", 2)
+          unless SUPPORTED_SCHEMES.includes?(scheme)
+            raise VfsException.new(VfsError.new(ErrorCode::UnsupportedScheme, "unsupported VFS scheme: #{scheme}"))
+          end
 
-          path = uri.path.empty? ? "/" : uri.path
-          return new(scheme, uri.host, path) unless scheme == "s3"
-
-          bucket = uri.host
-          key = uri.path.empty? ? "/" : uri.path
-          return new(scheme, bucket, key)
+          authority, path = split_authority_path(rest)
+          authority_value = authority.empty? ? nil : authority
+          return new(scheme, authority_value, path)
         end
 
         new("file", nil, File.expand_path(value))
+      end
+
+      private def self.split_authority_path(rest : String) : Tuple(String, String)
+        slash = rest.index("/")
+        return {rest, "/"} unless slash
+
+        {rest[0, slash], rest[slash..]}
       end
 
       def local? : Bool
@@ -54,6 +84,14 @@ module Commander
 
       def remote? : Bool
         !local?
+      end
+
+      def to_uri : String
+        if @scheme == "file"
+          "file://#{@path}"
+        else
+          "#{@scheme}://#{@authority}#{@path}"
+        end
       end
 
       def to_s(io : IO) : Nil
@@ -90,9 +128,14 @@ module Commander
     struct Response
       getter ok : Bool
       getter entries : Array(Entry)
-      getter error : String?
+      getter data : Bytes?
+      getter error : VfsError?
 
-      def initialize(@ok : Bool, @entries : Array(Entry) = [] of Entry, @error : String? = nil)
+      def initialize(@ok : Bool, @entries : Array(Entry) = [] of Entry, @data : Bytes? = nil, @error : VfsError? = nil)
+      end
+
+      def self.failure(code : ErrorCode, message : String) : Response
+        new(false, error: VfsError.new(code, message))
       end
     end
 
@@ -100,6 +143,167 @@ module Commander
       abstract def scheme : String
       abstract def stat(path : VirtualPath) : Response
       abstract def list(path : VirtualPath) : Response
+      abstract def read(path : VirtualPath) : Response
+      abstract def write(path : VirtualPath, data : Bytes) : Response
+      abstract def mkdir(path : VirtualPath) : Response
+      abstract def delete(path : VirtualPath) : Response
+      abstract def rename(path : VirtualPath, target : VirtualPath) : Response
+      abstract def copy(path : VirtualPath, target : VirtualPath) : Response
+      abstract def open_stream(path : VirtualPath) : Response
+    end
+
+    class Registry
+      def initialize
+        @providers = {} of String => Provider
+      end
+
+      def register(provider : Provider) : Registry
+        @providers[provider.scheme] = provider
+        self
+      end
+
+      def provider_for(path : VirtualPath) : Provider
+        provider = @providers[path.scheme]?
+        return provider if provider
+
+        raise VfsException.new(VfsError.new(ErrorCode::UnsupportedScheme, "unsupported VFS scheme: #{path.scheme}"))
+      end
+
+      def dispatch(request : Request, data : Bytes? = nil) : Response
+        provider = provider_for(request.path)
+
+        case request.operation
+        in Operation::Stat
+          provider.stat(request.path)
+        in Operation::List
+          provider.list(request.path)
+        in Operation::Read
+          provider.read(request.path)
+        in Operation::Write
+          provider.write(request.path, data || Bytes.empty)
+        in Operation::Mkdir
+          provider.mkdir(request.path)
+        in Operation::Delete
+          provider.delete(request.path)
+        in Operation::Rename
+          target = request.target
+          return Response.failure(ErrorCode::UnsupportedOperation, "rename requires a target URI") unless target
+
+          provider.rename(request.path, target)
+        in Operation::Copy
+          target = request.target
+          return Response.failure(ErrorCode::UnsupportedOperation, "copy requires a target URI") unless target
+
+          provider.copy(request.path, target)
+        in Operation::OpenStream
+          provider.open_stream(request.path)
+        end
+      end
+    end
+
+    class FileProvider < Provider
+      def scheme : String
+        "file"
+      end
+
+      def stat(path : VirtualPath) : Response
+        local = local_path(path)
+        return Response.failure(ErrorCode::NotFound, "file not found: #{local}") unless File.exists?(local) || Dir.exists?(local)
+
+        Response.new(true, [entry_for(local)])
+      rescue ex
+        Response.failure(ErrorCode::PermissionDenied, ex.message || "file stat failed")
+      end
+
+      def list(path : VirtualPath) : Response
+        local = local_path(path)
+        return Response.failure(ErrorCode::NotFound, "directory not found: #{local}") unless Dir.exists?(local)
+
+        entries = Dir.children(local).sort.map do |name|
+          entry_for(File.join(local, name))
+        end
+        Response.new(true, entries)
+      rescue ex
+        Response.failure(ErrorCode::PermissionDenied, ex.message || "file list failed")
+      end
+
+      def read(path : VirtualPath) : Response
+        local = local_path(path)
+        bytes = Bytes.new(File.info(local).size.to_i)
+        File.open(local) { |file| file.read_fully(bytes) }
+        Response.new(true, data: bytes)
+      rescue ex
+        Response.failure(ErrorCode::NotFound, ex.message || "file read failed")
+      end
+
+      def write(path : VirtualPath, data : Bytes) : Response
+        File.open(local_path(path), "w") { |file| file.write(data) }
+        Response.new(true)
+      rescue ex
+        Response.failure(ErrorCode::PermissionDenied, ex.message || "file write failed")
+      end
+
+      def mkdir(path : VirtualPath) : Response
+        Dir.mkdir_p(local_path(path))
+        Response.new(true)
+      rescue ex
+        Response.failure(ErrorCode::PermissionDenied, ex.message || "mkdir failed")
+      end
+
+      def delete(path : VirtualPath) : Response
+        local = local_path(path)
+        if Dir.exists?(local)
+          Dir.delete(local)
+        else
+          File.delete(local)
+        end
+        Response.new(true)
+      rescue ex
+        Response.failure(ErrorCode::PermissionDenied, ex.message || "delete failed")
+      end
+
+      def rename(path : VirtualPath, target : VirtualPath) : Response
+        File.rename(local_path(path), local_path(target))
+        Response.new(true)
+      rescue ex
+        Response.failure(ErrorCode::PermissionDenied, ex.message || "rename failed")
+      end
+
+      def copy(path : VirtualPath, target : VirtualPath) : Response
+        File.copy(local_path(path), local_path(target))
+        Response.new(true)
+      rescue ex
+        Response.failure(ErrorCode::PermissionDenied, ex.message || "copy failed")
+      end
+
+      def open_stream(path : VirtualPath) : Response
+        Response.failure(ErrorCode::UnsupportedOperation, "stream handles are not exposed through Response")
+      end
+
+      private def local_path(path : VirtualPath) : String
+        raise VfsException.new(VfsError.new(ErrorCode::UnsupportedScheme, "expected file URI")) unless path.scheme == "file"
+
+        path.path
+      end
+
+      private def entry_for(local : String) : Entry
+        info = File.info(local)
+        kind = if info.directory?
+                 EntryKind::Directory
+               elsif info.file?
+                 EntryKind::File
+               else
+                 EntryKind::Other
+               end
+
+        Entry.new(
+          name: File.basename(local),
+          path: VirtualPath.new("file", nil, local),
+          kind: kind,
+          size: info.size,
+          modified_at: info.modification_time
+        )
+      end
     end
   end
 end
