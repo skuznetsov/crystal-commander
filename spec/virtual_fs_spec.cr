@@ -137,6 +137,16 @@ describe Commander::VirtualFS::Registry do
     end
     error.vfs_error.code.should eq(Commander::VirtualFS::ErrorCode::UnsupportedScheme)
   end
+
+  it "registers fail-closed remote skeletons in the default registry" do
+    registry = Commander::VirtualFS::Registry.default
+    path = Commander::VirtualFS::VirtualPath.parse("sftp://example.com/home/user")
+
+    response = registry.dispatch(Commander::VirtualFS::Request.new(Commander::VirtualFS::Operation::List, path))
+    response.ok.should be_false
+    response.error.not_nil!.code.should eq(Commander::VirtualFS::ErrorCode::UnsupportedOperation)
+    response.error.not_nil!.message.should contain("sftp list provider is not configured")
+  end
 end
 
 describe Commander::VirtualFS::UriResolver do

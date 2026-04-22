@@ -202,6 +202,16 @@ module Commander
     end
 
     class Registry
+      def self.default : Registry
+        registry = new.register(FileProvider.new)
+        SUPPORTED_SCHEMES.each do |scheme|
+          next if scheme == "file"
+
+          registry.register(UnavailableRemoteProvider.new(scheme))
+        end
+        registry
+      end
+
       def initialize
         @providers = {} of String => Provider
       end
@@ -247,6 +257,56 @@ module Commander
         in Operation::OpenStream
           provider.open_stream(request.path)
         end
+      end
+    end
+
+    class UnavailableRemoteProvider < Provider
+      getter scheme : String
+
+      def initialize(@scheme : String)
+        unless SUPPORTED_SCHEMES.includes?(@scheme) && @scheme != "file"
+          raise ArgumentError.new("unsupported remote VFS scheme: #{@scheme}")
+        end
+      end
+
+      def stat(path : VirtualPath) : Response
+        unavailable("stat")
+      end
+
+      def list(path : VirtualPath) : Response
+        unavailable("list")
+      end
+
+      def read(path : VirtualPath) : Response
+        unavailable("read")
+      end
+
+      def write(path : VirtualPath, data : Bytes) : Response
+        unavailable("write")
+      end
+
+      def mkdir(path : VirtualPath) : Response
+        unavailable("mkdir")
+      end
+
+      def delete(path : VirtualPath) : Response
+        unavailable("delete")
+      end
+
+      def rename(path : VirtualPath, target : VirtualPath) : Response
+        unavailable("rename")
+      end
+
+      def copy(path : VirtualPath, target : VirtualPath) : Response
+        unavailable("copy")
+      end
+
+      def open_stream(path : VirtualPath) : Response
+        unavailable("open_stream")
+      end
+
+      private def unavailable(operation : String) : Response
+        Response.failure(ErrorCode::UnsupportedOperation, "#{@scheme} #{operation} provider is not configured")
       end
     end
 
