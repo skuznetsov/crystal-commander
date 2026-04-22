@@ -13,6 +13,7 @@ Commander should evolve toward a backend-neutral Crystal UI API compatible with 
 - Widgets MUST NOT know whether they are rendered by ANSI terminal, AppKit, Quartz, or another future backend.
 - Input events MUST normalize keyboard, mouse, scroll, and focus data before application widgets consume them.
 - Theme colors MUST be represented as a Crystal palette/style model before they reach a backend.
+- The first shared layer MUST be expressible from read-only Commander snapshots so terminal and native backends can reuse the same state projection.
 
 ## MUST NOT
 
@@ -29,6 +30,7 @@ Commander should evolve toward a backend-neutral Crystal UI API compatible with 
 - `DrawCommand`: backend-neutral primitive such as fill rect, stroke rect, text, line, image, and clip.
 - `UIEvent`: backend-neutral key, mouse, scroll, resize, focus, and wakeup events.
 - `Theme`: palette and style tokens shared by terminal and GUI backends.
+- `Commander::UI::WorkspaceView`: backend-neutral projection of commander state for renderers and future viewers/editors.
 
 ## Invariants
 
@@ -36,6 +38,7 @@ Commander should evolve toward a backend-neutral Crystal UI API compatible with 
 - The same high-level widget should be usable in terminal and native macOS with backend-specific rendering fidelity.
 - Backend primitives may be immediate-mode, but application state remains retained in Crystal.
 - Native macOS rendering can use AppKit/Quartz for window/input/drawing host, but not for product logic.
+- Snapshot-to-view projection is allowed as an incremental bridge while the retained widget tree is introduced.
 
 ## Checks
 
@@ -43,3 +46,4 @@ Commander should evolve toward a backend-neutral Crystal UI API compatible with 
 - A tabbed workspace can switch active workspaces without assuming exactly two panels.
 - Theme changes can update colors without recompiling Objective-C++ constants.
 - Keyboard and scroll input produce the same command IDs in terminal and macOS backends.
+- `Commander::UI.workspace(snapshot)` can describe active panel, selected entry, status text, and command IDs without loading AppKit.

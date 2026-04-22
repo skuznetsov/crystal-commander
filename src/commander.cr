@@ -67,6 +67,8 @@ struct PanelEntry
 end
 
 class PanelState
+  record ReturnOffset, parent_path : String, child_path : String, cursor : Int32
+
   getter path : String
   getter entries : Array(PanelEntry)
   getter marked_paths : Set(String)
@@ -76,6 +78,7 @@ class PanelState
     @path = start_path
     @entries = [] of PanelEntry
     @marked_paths = Set(String).new
+    @return_offsets = [] of ReturnOffset
     @cursor = 0
     load_path(start_path)
   end
@@ -157,6 +160,28 @@ class PanelState
     @entries[@cursor]
   end
 
+  def enter_directory(path : String) : Bool
+    previous_path = @path
+    previous_cursor = @cursor
+    load_path(path)
+    return false if @path == previous_path
+
+    if File.dirname(@path) == previous_path
+      remember_return_offset(previous_path, @path, previous_cursor)
+    end
+    true
+  end
+
+  def go_parent : Bool
+    child_path = @path
+    parent_path = File.dirname(child_path)
+    return false if parent_path == child_path
+
+    load_path(parent_path)
+    restore_return_offset(parent_path, child_path)
+    true
+  end
+
   def toggle_mark_selected : Bool
     selected = selected()
     return false unless selected
@@ -217,6 +242,23 @@ class PanelState
     @cursor = 0 if @cursor < 0
     max = @entries.size - 1
     @cursor = max.to_i32 if @cursor > max
+  end
+
+  private def remember_return_offset(parent_path : String, child_path : String, cursor : Int32) : Nil
+    @return_offsets.reject! { |item| item.parent_path == parent_path && item.child_path == child_path }
+    @return_offsets << ReturnOffset.new(parent_path, child_path, cursor)
+  end
+
+  private def restore_return_offset(parent_path : String, child_path : String) : Nil
+    row = @entries.index { |entry| entry.path == child_path }
+    if row
+      @cursor = row.to_i32
+      return
+    end
+
+    offset = @return_offsets.reverse_each.find { |item| item.parent_path == parent_path && item.child_path == child_path }
+    @cursor = offset.cursor if offset
+    clamp_cursor
   end
 
   private def format_size(bytes : Int64) : String
@@ -876,8 +918,7 @@ class CommanderApp
 
   private def go_parent(panel_index : Int32) : Nil
     panel = @panels[panel_index]
-    parent = File.dirname(panel.path)
-    panel.load_path(parent)
+    panel.go_parent
     sync_panel(panel_index)
   end
 
@@ -902,7 +943,7 @@ class CommanderApp
     return unless selected
 
     if selected.directory?
-      panel.load_path(selected.path)
+      panel.enter_directory(selected.path)
       sync_panel(panel_index)
     else
       update_status("Selected file: #{selected.path}")
