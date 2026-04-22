@@ -2,57 +2,57 @@
 
 Native Commander-style file manager written in Crystal, with an AppKit backend through Objective-C++ FFI.
 
-Нативный macOS-вариант консольного "движка" Midnight Commander:
-- несколько панелей (окна внутри одного приложения),
-- рендерер вынесен в `ObjC++` библиотеку (`src/commander_renderer.mm`),
-- управление состоянием панелей и навигацией выполняется в Crystal (`src/commander.cr`, `src/renderer.cr`).
+Native macOS version of a Midnight Commander-style file manager:
+- multiple panels inside one application window,
+- rendering is isolated in the `ObjC++` library (`src/commander_renderer.mm`),
+- panel state and navigation are controlled from Crystal (`src/commander.cr`, `src/renderer.cr`).
 
-## Что сейчас реализовано
+## Current implementation
 
-- Рендеринг AppKit-UI и сбор input-событий (`keyboard`/`mouse`) реализованы в `.mm`.
-- Файловая модель, навигация, обработка `Enter/Backspace/Tab/Arrow` реализованы в Crystal.
-- Built-in команды проходят через Crystal `CommandRegistry` и `Keymap`, чтобы позже подключить plugins/AppleScript/debug automation к тому же command layer.
+- AppKit UI rendering and input event collection (`keyboard`/`mouse`) are implemented in `.mm`.
+- The file model, navigation, and `Enter/Backspace/Tab/Arrow` handling are implemented in Crystal.
+- Built-in commands go through the Crystal `CommandRegistry` and `Keymap`, so plugins, AppleScript, and debug automation can share the same command layer later.
 - Crystal exposes internal read-only snapshot structs for future plugins/debug automation.
-- Crystal обновляет UI через набор FFI-команд (`set_panel_path`, `set_panel_rows`, `set_status_text`, `set_active_panel`).
+- Crystal updates the UI through FFI commands (`set_panel_path`, `set_panel_rows`, `set_status_text`, `set_active_panel`).
 
-## Архитектура FFI
+## FFI architecture
 
-- `src/commander_renderer.mm` — полноценная native-библиотека рендера (AppKit/ObjC++).
-- `src/commander_renderer.h` — C ABI для безопасного вызова из Crystal.
-- `src/renderer.cr` — Crystal-обертка над C ABI (create/show/pump/poll/update).
-- `src/command_registry.cr` — единый Crystal command layer для keyboard/menu/plugins/automation.
+- `src/commander_renderer.mm` — native rendering library (AppKit/ObjC++).
+- `src/commander_renderer.h` — C ABI for safe calls from Crystal.
+- `src/renderer.cr` — Crystal wrapper over the C ABI (create/show/pump/poll/update).
+- `src/command_registry.cr` — shared Crystal command layer for keyboard/menu/plugins/automation.
 - `src/keymap.cr` — mapping raw key codes/modifiers to command IDs.
 - `src/snapshots.cr` — read-only JSON-serializable app/panel/entry snapshots for plugins/debug automation.
 - `src/automation_protocol.cr` — JSON command/response structs for future stateful IPC.
 - `src/plugin_manifest.cr` — JSON manifest model for future Lua/subprocess plugins.
-- `src/plugin_host.cr` — read-only plugin manifest discovery; no plugin code execution yet.
-- `src/plugin_runtime.cr` — plugin runtime interface and no-op Lua/subprocess runtime stubs.
+- `src/plugin_host.cr` — plugin manifest discovery and command registration.
+- `src/plugin_runtime.cr` — plugin runtime interface, Lua subprocess runtime, and disabled subprocess runtime stub.
 - `src/file_operations.cr` — safe file operation planning structs; execution is not implemented yet.
 - `src/file_preview.cr` — read-only bounded text preview for `file.view`.
-- `src/commander.cr` — пример full control логики из Crystal (без нативного file-control внутри `.mm`).
+- `src/commander.cr` — example of full control logic from Crystal, without native file-control logic inside `.mm`.
 
 ## Grok Delegation
 
-- `scripts/grok_acp_delegate.py` — минимальный ACP-клиент для выдачи задач Grok.
-- `GROK_DELEGATION.md` — workflow: Codex ставит задачу и ревьюит, Grok делает рабочий патч.
+- `scripts/grok_acp_delegate.py` — minimal ACP client for delegating tasks to Grok.
+- `GROK_DELEGATION.md` — workflow where Codex assigns and reviews tasks while Grok produces working patches.
 
-Текущая локальная проверка: ACP handshake проходит, но `session/prompt` получает `HTTP 403: Grok Build is in early access`.
+Current local observation: ACP handshake works, but `session/prompt` may return `HTTP 403: Grok Build is in early access` depending on account access.
 
-> Рендер-слой теперь отделен от логики: `.mm` только рисует и отдает события, Crystal решает поведение.
+> The rendering layer is isolated from behavior: `.mm` draws and emits events, while Crystal decides application behavior.
 
 ## CodeSpeak specs
 
-Архитектурные контракты лежат в `specs/*Spec.cs.md`:
+Architectural contracts live in `specs/*Spec.cs.md`:
 
-- `specs/ArchitectureSpec.cs.md` — Crystal-first архитектура и границы ответственности.
-- `specs/RendererAbiSpec.cs.md` — правила C ABI, ownership и renderer-команд.
-- `specs/PanelsAndEventsSpec.cs.md` — multi-panel модель, Tab, cursor, mouse/key events.
-- `specs/PluginsSpec.cs.md` — будущий plugin API, Lua/runtime границы и permissions.
+- `specs/ArchitectureSpec.cs.md` — Crystal-first architecture and responsibility boundaries.
+- `specs/RendererAbiSpec.cs.md` — C ABI, ownership, and renderer command rules.
+- `specs/PanelsAndEventsSpec.cs.md` — multi-panel model, Tab switching, cursor handling, mouse/key events.
+- `specs/PluginsSpec.cs.md` — plugin API, Lua/runtime boundaries, and permissions.
 - `specs/AutomationSpec.cs.md` — AppleScript/Accessibility/debug automation contracts.
-- `specs/CrystalGuiApiSpec.cs.md` — будущий backend-neutral Crystal TUI/GUI API.
+- `specs/CrystalGuiApiSpec.cs.md` — future backend-neutral Crystal TUI/GUI API.
 - `specs/TabsSpec.cs.md` — top-level workspace tabs in addition to multiple panels per tab.
 
-Перед изменениями в чувствительных местах нужно сверять patch с соответствующим spec. Если код и spec расходятся, patch должен либо сохранить intent, либо явно обновить spec.
+Before changing sensitive areas, compare the patch with the relevant spec. If code and spec diverge, the patch must either preserve the documented intent or explicitly update the spec.
 
 ## C ABI API
 
@@ -66,9 +66,9 @@ Native Commander-style file manager written in Crystal, with an AppKit backend t
 - `commander_renderer_get_mouse_position`
 - `commander_renderer_set_mouse_visible`
 
-## Запуск на macOS
+## Running on macOS
 
-### Быстрый запуск (рекомендуется)
+### Quick start (recommended)
 
 ```bash
 cd /Users/sergey/Projects/Crystal/commander
@@ -76,14 +76,14 @@ chmod +x run_mac.sh
 ./run_mac.sh
 ```
 
-Или вручную:
+Or manually:
 
 ```bash
 cd /Users/sergey/Projects/Crystal/commander
 make run
 ```
 
-### Ручной запуск
+### Manual run
 
 ```bash
 cd /Users/sergey/Projects/Crystal/commander
@@ -92,7 +92,7 @@ cc -ObjC -fobjc-arc -c src/objc_bridge.c -o src/objc_bridge.o
 crystal run src/commander.cr --link-flags "$(pwd)/src/objc_bridge.o $(pwd)/src/commander_renderer.o -framework Foundation -framework AppKit -framework Cocoa -lobjc -lc++"
 ```
 
-Если хочешь собрать бинарь:
+To build the binary:
 
 ```bash
 c++ -ObjC++ -fobjc-arc -c src/commander_renderer.mm -o src/commander_renderer.o
@@ -101,25 +101,25 @@ crystal build src/commander.cr -o commander --link-flags "$(pwd)/src/objc_bridge
 ./commander
 ```
 
-Запускай без `timeout` и без форка в фоне — процесс должен жить, пока ты сам не закроешь окно.
+Run without `timeout` and without background forking. The process should stay alive until the window is closed.
 
-Откройте приложение — окно появится как обычное macOS окно.
+Open the application and the window appears as a normal macOS window.
 
-## Конфигурация
+## Configuration
 
-- `PANELS` — количество панелей в одном окне (по умолчанию `3`, диапазон `1..8`).
-- `COMMANDER_PLUGIN_PATH` — директория read-only plugin manifests (по умолчанию `plugins`).
-- `COMMANDER_DUMP_STATE=1` — вывести read-only JSON snapshot и завершиться без открытия окна.
-- `COMMANDER_RUN_COMMAND=<id>` — выполнить command ID в headless mode, вывести JSON snapshot и завершиться.
-- `COMMANDER_COMMAND_PANEL=<index>` — panel index для `COMMANDER_RUN_COMMAND` (по умолчанию active panel).
+- `PANELS` — number of panels in one window (default `3`, range `1..8`).
+- `COMMANDER_PLUGIN_PATH` — directory with plugin manifests (default `plugins`).
+- `COMMANDER_DUMP_STATE=1` — print a read-only JSON snapshot and exit without opening a window.
+- `COMMANDER_RUN_COMMAND=<id>` — execute a command ID in headless mode, print a JSON snapshot, and exit.
+- `COMMANDER_COMMAND_PANEL=<index>` — panel index for `COMMANDER_RUN_COMMAND` (default: active panel).
 - `COMMANDER_COMMAND_ARG=<text>` — optional single string argument for headless command execution.
 - `COMMANDER_AUTOMATION_COMMAND_JSON=<json>` — execute JSON `AutomationCommand`, return JSON `AutomationResponse`.
-- `COMMANDER_DRY_RUN=1` — plan mutating headless commands without filesystem changes.
+- `COMMANDER_DRY_RUN=1` — plan mutating headless commands without applying filesystem changes.
 - `COMMANDER_AUTOMATION_SOCKET=<path>` — reserved path for future stateful local IPC; listener is not implemented yet.
-- `COMMANDER_ENABLE_LUA_PLUGINS=1` — reserved gate for future embedded Lua plugin execution; runtime still stubbed.
+- `COMMANDER_ENABLE_LUA_PLUGINS=1` — enable Lua plugin command execution through an external `lua`, `lua5.4`, or `luajit` binary.
 - `COMMANDER_ENABLE_SUBPROCESS_PLUGINS=1` — reserved gate for future subprocess plugin execution; runtime still stubbed.
 
-Read-only state через wrapper:
+Read-only state through the wrapper:
 
 ```bash
 sh scripts/commanderctl state
@@ -187,7 +187,7 @@ Plugin discovery is metadata-only for now. Example:
 }
 ```
 
-Manifest-declared commands are registered as inert placeholders until the runtime host is implemented.
+Manifest-declared commands are registered through the command layer and are executed by their configured runtime when that runtime is enabled.
 
 Runtime request/response structs are JSON-serializable so embedded Lua and future subprocess runtimes can share a protocol:
 

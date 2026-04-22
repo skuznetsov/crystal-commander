@@ -111,6 +111,7 @@ module Commander
 
     private def lua_wrapper(request : PluginRuntimeRequest, entrypoint : String) : String
       active_panel = request.context.active_panel
+      panel = request.context.panels.find { |snapshot| snapshot.index == active_panel }
       <<-LUA
       local __commands = {}
       local __status = nil
@@ -140,7 +141,8 @@ module Commander
       local ctx = {
         command_id = #{lua_string(request.command_id)},
         plugin_id = #{lua_string(request.plugin_id)},
-        active_panel = #{active_panel}
+        active_panel = #{active_panel},
+        panel = #{lua_panel(panel)}
       }
 
       local ok_exec, exec_err = pcall(fn, ctx)
@@ -162,6 +164,45 @@ module Commander
         .gsub("\n", "\\n")
         .gsub("\r", "\\r")
       "\"#{escaped}\""
+    end
+
+    private def lua_panel(panel : PanelSnapshot?) : String
+      return "nil" unless panel
+
+      selected = if panel.cursor >= 0 && panel.cursor < panel.entries.size
+                   panel.entries[panel.cursor]
+                 end
+
+      entries = panel.entries.map { |entry| lua_entry(entry) }
+      marked_paths = panel.marked_paths.map { |path| lua_string(path) }
+      <<-LUA
+      {
+        index = #{panel.index},
+        path = #{lua_string(panel.path)},
+        display_path = #{lua_string(panel.display_path)},
+        cursor = #{panel.cursor},
+        active = #{panel.active ? "true" : "false"},
+        marked_paths = #{lua_array(marked_paths)},
+        entries = #{lua_array(entries)},
+        selected_entry = #{selected ? lua_entry(selected) : "nil"}
+      }
+      LUA
+    end
+
+    private def lua_entry(entry : EntrySnapshot) : String
+      <<-LUA
+      {
+        name = #{lua_string(entry.name)},
+        size = #{lua_string(entry.size)},
+        modified = #{lua_string(entry.modified)},
+        path = #{lua_string(entry.path)},
+        flags = #{entry.flags}
+      }
+      LUA
+    end
+
+    private def lua_array(values : Array(String)) : String
+      "{#{values.join(", ")}}"
     end
   end
 

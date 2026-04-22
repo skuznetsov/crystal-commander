@@ -2,7 +2,10 @@ require "spec"
 require "file_utils"
 require "../src/plugin_runtime"
 
-private def runtime_snapshot_context(active_panel : Int32 = 0) : Commander::AppSnapshot
+private def runtime_snapshot_context(
+  active_panel : Int32 = 0,
+  panels : Array(Commander::PanelSnapshot) = [] of Commander::PanelSnapshot
+) : Commander::AppSnapshot
   Commander::AppSnapshot.new(
     active_panel: active_panel,
     panel_count: 1,
@@ -16,7 +19,34 @@ private def runtime_snapshot_context(active_panel : Int32 = 0) : Commander::AppS
     commands: [] of Commander::CommandSnapshot,
     pending_operation: nil,
     preview: nil,
-    panels: [] of Commander::PanelSnapshot
+    panels: panels
+  )
+end
+
+private def runtime_panel_snapshot : Commander::PanelSnapshot
+  Commander::PanelSnapshot.new(
+    index: 2,
+    path: "/tmp/example",
+    display_path: "~/example",
+    cursor: 1,
+    active: true,
+    marked_paths: ["/tmp/example/alpha.txt"],
+    entries: [
+      Commander::EntrySnapshot.new(
+        name: "/src",
+        size: "<DIR>",
+        modified: "Apr 21 20:00",
+        path: "/tmp/example/src",
+        flags: 1_u32
+      ),
+      Commander::EntrySnapshot.new(
+        name: "alpha.txt",
+        size: "12B",
+        modified: "Apr 21 20:01",
+        path: "/tmp/example/alpha.txt",
+        flags: 8_u32
+      ),
+    ]
   )
 end
 
@@ -122,6 +152,39 @@ describe Commander::LuaPluginRuntime do
         response.ok.should be_false
         response.error.should_not be_nil
         response.error.not_nil!.should contain("Lua command not registered")
+      end
+    ensure
+      if previous
+        ENV["COMMANDER_LUA_BIN"] = previous
+      else
+        ENV.delete("COMMANDER_LUA_BIN")
+      end
+    end
+  end
+
+  it "exposes active panel snapshot to Lua commands" do
+    lua = find_lua_binary
+    pending! "Lua executable not available" unless lua
+
+    previous = ENV["COMMANDER_LUA_BIN"]?
+    ENV["COMMANDER_LUA_BIN"] = lua.not_nil!
+    begin
+      with_lua_plugin_file(%(
+        commander.command("example.panel", function(ctx)
+          commander.status(ctx.panel.display_path .. " " .. ctx.panel.selected_entry.name .. " " .. tostring(#ctx.panel.entries))
+        end)
+      )) do |path|
+        runtime = Commander::LuaPluginRuntime.new(true)
+        request = Commander::PluginRuntimeRequest.new(
+          command_id: "example.panel",
+          plugin_id: "example",
+          entrypoint_path: path,
+          context: runtime_snapshot_context(active_panel: 2, panels: [runtime_panel_snapshot])
+        )
+
+        response = runtime.execute(request)
+        response.ok.should be_true
+        response.status_text.should eq("~/example alpha.txt 2")
       end
     ensure
       if previous
