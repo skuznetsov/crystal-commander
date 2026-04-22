@@ -225,6 +225,7 @@ Definition of Done:
 - `VirtualFS::Registry.default` registers fail-closed ssh/sftp/s3 provider skeletons with no network access
 - Lua plugins can inspect manifest-granted VFS schemes through `commander.vfs.allowed_schemes()`
 - Panel and entry snapshots expose canonical VFS `uri` fields while retaining legacy `path` fields
+- `panel.open_path` accepts `file://` URIs and fail-closed remote URIs without network access
 - Unsupported schemes fail before I/O with typed `VfsError`
 - Tests cover registry dispatch, unsupported scheme, binary-safe local read, and local mutation operations
 - `crystal spec`, `sh scripts/spec_check`, and `make commander` pass
@@ -241,6 +242,7 @@ Evidence:
 - Added fail-closed remote provider skeletons for ssh/sftp/s3
 - Added Lua VFS allowed-scheme introspection
 - Added canonical VFS URI fields to panel/entry snapshots and Lua panel snapshots
+- Added URI-aware `panel.open_path` behavior for local file URIs and fail-closed remote URI probes
 - Validation: `crystal spec` passed with 62 examples; `sh scripts/spec_check` passed; `make clean && make commander` passed; `sh scripts/commanderctl state` returned JSON with `uri` fields
 
 Remaining:

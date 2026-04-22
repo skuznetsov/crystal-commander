@@ -961,6 +961,11 @@ class CommanderApp
   end
 
   private def open_path(panel_index : Int32, path : String) : Nil
+    if path.includes?("://")
+      open_uri(panel_index, path)
+      return
+    end
+
     panel = @panels[panel_index]
     previous = panel.path
     panel.load_path(path)
@@ -970,6 +975,28 @@ class CommanderApp
     else
       update_status("Panel #{panel_index + 1}: #{panel.display_path}")
     end
+  end
+
+  private def open_uri(panel_index : Int32, uri : String) : Nil
+    path = Commander::VirtualFS::VirtualPath.parse(uri)
+    if path.scheme == "file"
+      open_path(panel_index, path.path)
+      return
+    end
+
+    response = Commander::VirtualFS::Registry.default.dispatch(
+      Commander::VirtualFS::Request.new(Commander::VirtualFS::Operation::List, path)
+    )
+    if response.ok
+      update_status("Remote panel loading is not wired yet: #{path.to_uri}")
+    else
+      error = response.error
+      update_status("Open URI failed: #{error.try(&.message) || "unknown VFS error"}")
+    end
+  rescue ex : Commander::VirtualFS::VfsException
+    update_status("Open URI failed: #{ex.vfs_error.message}")
+  rescue ex : ArgumentError
+    update_status("Open URI failed: #{ex.message || ex.class.name}")
   end
 
   private def activate_row(panel_index : Int32, row : Int32) : Nil
