@@ -1,5 +1,6 @@
 require "./plugin_manifest"
 require "./snapshots"
+require "./virtual_fs"
 
 module Commander
   struct PluginRuntimeRequest
@@ -69,7 +70,8 @@ module Commander
         return PluginRuntimeResponse.new(false, error: "Lua executable not found; set COMMANDER_LUA_BIN")
       end
 
-      script = lua_wrapper(request, entrypoint)
+      plugin = request.context.plugins.find { |snapshot| snapshot.id == request.plugin_id }
+      script = lua_wrapper(request, entrypoint, plugin)
       stdout = IO::Memory.new
       stderr = IO::Memory.new
       status = Process.run(lua, input: IO::Memory.new(script), output: stdout, error: stderr)
@@ -109,7 +111,7 @@ module Commander
       LibC.access(path, 1) == 0 && !File.directory?(path)
     end
 
-    private def lua_wrapper(request : PluginRuntimeRequest, entrypoint : String) : String
+    private def lua_wrapper(request : PluginRuntimeRequest, entrypoint : String, plugin : PluginSnapshot?) : String
       active_panel = request.context.active_panel
       panel = request.context.panels.find { |snapshot| snapshot.index == active_panel }
       <<-LUA
@@ -124,6 +126,43 @@ module Commander
 
       function commander.status(text)
         __status = tostring(text or "")
+      end
+
+      local __vfs_allowed = #{lua_vfs_allowed_schemes(plugin)}
+
+      commander.vfs = {}
+
+      function commander.vfs.parse(uri)
+        local value = tostring(uri or "")
+        local scheme, rest = string.match(value, "^([%w%+%-%.]+)://(.*)$")
+        if scheme == nil then
+          scheme = "file"
+          rest = value
+        end
+
+        if not __vfs_allowed[scheme] then
+          return nil, { code = "PermissionDenied", message = "VFS scheme is not permitted for this plugin" }
+        end
+
+        if scheme == "file" then
+          local path = rest
+          if string.match(value, "^file://") then
+            local _, file_path = string.match(rest, "^([^/]*)(/.*)$")
+            path = file_path or rest
+          end
+          return { scheme = "file", authority = nil, path = path, uri = value }, nil
+        end
+
+        if scheme ~= "ssh" and scheme ~= "sftp" and scheme ~= "s3" then
+          return nil, { code = "UnsupportedScheme", message = "VFS scheme is unsupported" }
+        end
+
+        local authority, path = string.match(rest, "^([^/]*)(/.*)$")
+        if authority == nil then
+          authority = rest
+          path = "/"
+        end
+        return { scheme = scheme, authority = authority, path = path, uri = value }, nil
       end
 
       local ok_load, load_err = pcall(dofile, #{lua_string(entrypoint)})
@@ -164,6 +203,23 @@ module Commander
         .gsub("\n", "\\n")
         .gsub("\r", "\\r")
       "\"#{escaped}\""
+    end
+
+    private def lua_vfs_allowed_schemes(plugin : PluginSnapshot?) : String
+      return "{}" unless plugin
+
+      allowed = plugin.permissions.select { |permission| permission.starts_with?("vfs.read:") }
+      return "{}" if allowed.empty?
+
+      schemes = allowed.flat_map do |permission|
+        value = permission.split(":", 2)[1]
+        value == "*" ? Commander::VirtualFS::SUPPORTED_SCHEMES.to_a : [value]
+      end.to_set
+
+      entries = Commander::VirtualFS::SUPPORTED_SCHEMES
+        .select { |scheme| schemes.includes?(scheme) }
+        .map { |scheme| "[#{lua_string(scheme)}] = true" }
+      "{#{entries.join(", ")}}"
     end
 
     private def lua_panel(panel : PanelSnapshot?) : String

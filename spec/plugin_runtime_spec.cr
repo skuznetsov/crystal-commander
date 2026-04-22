@@ -4,7 +4,8 @@ require "../src/plugin_runtime"
 
 private def runtime_snapshot_context(
   active_panel : Int32 = 0,
-  panels : Array(Commander::PanelSnapshot) = [] of Commander::PanelSnapshot
+  panels : Array(Commander::PanelSnapshot) = [] of Commander::PanelSnapshot,
+  plugins : Array(Commander::PluginSnapshot) = [] of Commander::PluginSnapshot
 ) : Commander::AppSnapshot
   Commander::AppSnapshot.new(
     active_panel: active_panel,
@@ -13,7 +14,7 @@ private def runtime_snapshot_context(
     status_text: "Ready",
     dry_run: false,
     plugin_root: "plugins",
-    plugins: [] of Commander::PluginSnapshot,
+    plugins: plugins,
     plugin_runtimes: [] of Commander::PluginRuntimeSnapshot,
     plugin_errors: [] of String,
     commands: [] of Commander::CommandSnapshot,
@@ -21,6 +22,21 @@ private def runtime_snapshot_context(
     preview: nil,
     external_view: nil,
     panels: panels
+  )
+end
+
+private def runtime_plugin_snapshot(permissions : Array(String)) : Commander::PluginSnapshot
+  Commander::PluginSnapshot.new(
+    id: "example",
+    name: "Example",
+    version: "0.1.0",
+    api_version: "0.1",
+    runtime: "lua",
+    entrypoint: "main.lua",
+    entrypoint_path: nil,
+    permissions: permissions,
+    command_ids: ["example.vfs"],
+    key_bindings: [] of String
   )
 end
 
@@ -186,6 +202,78 @@ describe Commander::LuaPluginRuntime do
         response = runtime.execute(request)
         response.ok.should be_true
         response.status_text.should eq("~/example alpha.txt 2")
+      end
+    ensure
+      if previous
+        ENV["COMMANDER_LUA_BIN"] = previous
+      else
+        ENV.delete("COMMANDER_LUA_BIN")
+      end
+    end
+  end
+
+  it "exposes permission-gated VFS URI parsing to Lua commands" do
+    lua = find_lua_binary
+    pending! "Lua executable not available" unless lua
+
+    previous = ENV["COMMANDER_LUA_BIN"]?
+    ENV["COMMANDER_LUA_BIN"] = lua.not_nil!
+    begin
+      with_lua_plugin_file(%(
+        commander.command("example.vfs", function(ctx)
+          local item, err = commander.vfs.parse("sftp://example.com/home/user")
+          if err ~= nil then
+            commander.status(err.code)
+            return
+          end
+          commander.status(item.scheme .. " " .. item.authority .. " " .. item.path)
+        end)
+      )) do |path|
+        runtime = Commander::LuaPluginRuntime.new(true)
+        request = Commander::PluginRuntimeRequest.new(
+          command_id: "example.vfs",
+          plugin_id: "example",
+          entrypoint_path: path,
+          context: runtime_snapshot_context(plugins: [runtime_plugin_snapshot(["vfs.read:sftp"])])
+        )
+
+        response = runtime.execute(request)
+        response.ok.should be_true
+        response.status_text.should eq("sftp example.com /home/user")
+      end
+    ensure
+      if previous
+        ENV["COMMANDER_LUA_BIN"] = previous
+      else
+        ENV.delete("COMMANDER_LUA_BIN")
+      end
+    end
+  end
+
+  it "denies Lua VFS parsing for schemes missing from plugin permissions" do
+    lua = find_lua_binary
+    pending! "Lua executable not available" unless lua
+
+    previous = ENV["COMMANDER_LUA_BIN"]?
+    ENV["COMMANDER_LUA_BIN"] = lua.not_nil!
+    begin
+      with_lua_plugin_file(%(
+        commander.command("example.vfs", function(ctx)
+          local item, err = commander.vfs.parse("s3://bucket/key")
+          commander.status(err.code)
+        end)
+      )) do |path|
+        runtime = Commander::LuaPluginRuntime.new(true)
+        request = Commander::PluginRuntimeRequest.new(
+          command_id: "example.vfs",
+          plugin_id: "example",
+          entrypoint_path: path,
+          context: runtime_snapshot_context(plugins: [runtime_plugin_snapshot(["vfs.read:sftp"])])
+        )
+
+        response = runtime.execute(request)
+        response.ok.should be_true
+        response.status_text.should eq("PermissionDenied")
       end
     ensure
       if previous

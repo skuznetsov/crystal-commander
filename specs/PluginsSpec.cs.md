@@ -92,6 +92,8 @@ end)
 - Lua runtime MUST report plugin load and command execution errors as command status, not process crashes.
 - Lua MVP MUST NOT expose network, shell, arbitrary file reads, arbitrary file writes, or renderer access.
 - Lua MVP MAY expose `commander.command(id, fn)` and `commander.status(text)`.
+- Lua VFS MVP MAY expose `commander.vfs.parse(uri)` when the plugin manifest includes `vfs.read:<scheme>` or `vfs.read:*`.
+- Lua VFS MVP MUST return typed error tables for denied or unsupported schemes.
 
 ## Invariants
 
@@ -112,6 +114,7 @@ end)
 - A plugin command can update status without touching renderer internals.
 - A plugin can read active panel snapshot without mutating it.
 - A Lua plugin can read `ctx.panel.selected_entry` and `ctx.panel.entries`.
+- A Lua plugin can parse an allowed VFS URI and receives `PermissionDenied` for a scheme not present in manifest permissions.
 - Invalid plugin manifests are reported without executing plugin code.
 - Duplicate plugin command IDs are reported before runtime initialization.
 - A failing plugin command returns an error status and leaves the app running.
