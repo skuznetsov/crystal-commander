@@ -71,3 +71,11 @@ Commander has a Crystal-owned tab model with independent panel arrays, per-tab a
 Evidence: `src/commander.cr`, `src/snapshots.cr`, `specs/TabsSpec.cs.md`.
 
 Trust: `{F:0.8,G:0.6,R:0.8}` `crystal spec` passed with 69 examples, `sh scripts/spec_check` passed, `make commander` passed, and `scripts/tabs_smoke` preserved different panel URIs across two tabs, verified rename, verified close, and verified the last-tab guard.
+
+## LM-10: Backend-neutral UI draw frame exists
+
+Commander has a Crystal-owned P1 UI API with backend-neutral events, draw commands, draw frames, theme tokens, a backend contract, a recording backend for no-GUI verification, and a snapshot-to-draw-command workspace renderer. The current AppKit renderer still consumes the older C ABI state directly; this landmark proves the Crystal-side draw stream can be generated deterministically before native renderer migration.
+
+Evidence: `src/ui_api.cr`, `spec/ui_api_spec.cr`, `specs/CrystalGuiApiSpec.cs.md`.
+
+Trust: `{F:0.8,G:0.5,R:0.8}` `crystal spec` passed with 71 examples, `sh scripts/spec_check` passed, `make commander` passed, `scripts/tabs_smoke` passed, `scripts/vfs_smoke` passed, and UI specs verified two backend stubs receive identical draw command streams.

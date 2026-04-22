@@ -38,7 +38,7 @@ Remaining:
 
 ## 2. Fix compile/runtime issues from verification
 
-Status: TODO
+Status: PARTIAL
 
 Risk: SAFE
 
@@ -125,6 +125,22 @@ Migration phases (see `specs/CrystalGuiApiSpec.cs.md`):
 - P2: Retained widget tree (`Widget`, `Label`, `ListView`, `Split`, `TabBar`); file panel as `ListView`
 - P3: Theme and style tokens; palette maps to NSColor vs ANSI escapes
 - P4: Full workspace as widgets (`MenuBar` | `TabBar` | `WorkspaceSplit` | `StatusBar`); C ABI as one backend impl
+
+Evidence:
+
+- Added backend-neutral `DrawCommand`, `DrawFrame`, `UIEvent`, `Theme`, and `Backend` abstractions in Crystal
+- Added `RecordingBackend` as a no-GUI backend stub for deterministic draw/event tests
+- Added `WorkspaceRenderer.render` to project Commander snapshots into draw commands for menu, tabs, panels, selection, and status rows
+- Added `TabView` and canonical panel URI projection to the backend-neutral workspace view
+- Added specs proving two swappable backend stubs receive identical draw command streams
+- Validation: `crystal spec` passed with 71 examples; `sh scripts/spec_check` passed; `make commander` passed; `scripts/tabs_smoke` passed; `scripts/vfs_smoke` passed
+
+Remaining:
+
+- Retained widget tree is not implemented yet
+- AppKit renderer still consumes the existing C ABI state directly instead of `DrawFrame`
+- Terminal backend adapter is not implemented yet
+- Runtime theme switching remains future work
 
 ## 8. Add top-level workspace tabs
 
