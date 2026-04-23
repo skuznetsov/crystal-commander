@@ -1,0 +1,61 @@
+#!/usr/bin/env sh
+set -eu
+
+repo_dir="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+socket_path="${TMPDIR:-/tmp}/commander-ipc-smoke-$$.sock"
+log_path="${TMPDIR:-/tmp}/commander-ipc-smoke-$$.log"
+
+cleanup() {
+  if [ -n "${server_pid:-}" ]; then
+    kill "$server_pid" 2>/dev/null || true
+    wait "$server_pid" 2>/dev/null || true
+  fi
+  rm -f "$socket_path" "$log_path"
+}
+trap cleanup EXIT INT TERM
+
+python3 - "$socket_path" "$log_path" <<'PY' &
+import json
+import os
+import socket
+import sys
+
+socket_path = sys.argv[1]
+log_path = sys.argv[2]
+try:
+    os.unlink(socket_path)
+except FileNotFoundError:
+    pass
+
+server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+server.bind(socket_path)
+server.listen(1)
+with open(log_path, "w", encoding="utf-8") as log:
+    log.write("ready\n")
+    log.flush()
+    conn, _ = server.accept()
+    with conn:
+        data = b""
+        while not data.endswith(b"\n"):
+            chunk = conn.recv(4096)
+            if not chunk:
+                break
+            data += chunk
+        payload = json.loads(data.decode("utf-8"))
+        response = {
+            "ok": True,
+            "status_text": "ipc " + payload["command_id"],
+            "error": None,
+        }
+        conn.sendall((json.dumps(response) + "\n").encode("utf-8"))
+server.close()
+PY
+server_pid=$!
+
+while [ ! -S "$socket_path" ]; do
+  sleep 0.05
+done
+
+json='{"command_id":"app.help"}'
+response="$(sh "$repo_dir/scripts/commanderctl" ipc-command-json "$socket_path" "$json")"
+printf '%s\n' "$response" | python3 -c 'import json,sys; data=json.load(sys.stdin); assert data["ok"] is True, data; assert data["status_text"] == "ipc app.help", data; print(data["status_text"])'

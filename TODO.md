@@ -65,13 +65,15 @@ Evidence:
 
 - Added local Unix socket listener in `Commander::AutomationServer`
 - IPC accepts one newline-delimited JSON `AutomationCommand` per client and returns JSON
+- Added `commanderctl ipc-command-json` and `ipc-command-json-file` socket clients
 - Valid commands route through the same in-process automation executor used by headless JSON paths
 - Malformed JSON returns a structured `{ok:false,status_text,error}` envelope instead of a raw stack trace
 - Socket paths are fail-closed: existing filesystem paths are refused and not overwritten
 - IPC mutating commands are denied unless the request sets `dry_run=true`
 - Added `spec/automation_server_spec.cr` covering valid IPC commands, malformed requests, and existing-path safety
 - Added automation policy specs covering read-like commands, mutating command denial, and dry-run mutating command allowance
-- Validation: `crystal spec` passed with 84 examples; `sh scripts/spec_check` passed; `shards build` passed; `make commander` passed; `scripts/tabs_smoke` passed; `scripts/vfs_smoke` passed
+- Added `scripts/ipc_smoke` with a fixture Unix socket server to verify the CLI IPC client without launching GUI
+- Validation: `crystal spec` passed with 84 examples; `sh scripts/spec_check` passed; `shards build` passed; `make commander` passed; `scripts/tabs_smoke` passed; `scripts/vfs_smoke` passed; `scripts/ipc_smoke` passed
 
 Remaining:
 

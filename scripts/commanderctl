@@ -10,6 +10,28 @@ ensure_binary() {
   fi
 }
 
+send_ipc_json() {
+  socket_path="$1"
+  json="$2"
+  python3 - "$socket_path" "$json" <<'PY'
+import socket
+import sys
+
+socket_path = sys.argv[1]
+payload = sys.argv[2]
+with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+    client.connect(socket_path)
+    client.sendall(payload.encode("utf-8") + b"\n")
+    chunks = []
+    while True:
+        chunk = client.recv(65536)
+        if not chunk:
+            break
+        chunks.append(chunk)
+sys.stdout.write(b"".join(chunks).decode("utf-8"))
+PY
+}
+
 case "$command" in
   state)
     shift || true
@@ -96,6 +118,26 @@ case "$command" in
     cd "$repo_dir"
     ensure_binary
     COMMANDER_AUTOMATION_COMMANDS_JSON="$(cat "$json_file")" "$repo_dir/commander"
+    ;;
+  ipc-command-json)
+    shift || true
+    if [ "$#" -lt 2 ]; then
+      printf 'usage: %s ipc-command-json SOCKET JSON\n' "$0" >&2
+      exit 2
+    fi
+    socket_path="$1"
+    json="$2"
+    send_ipc_json "$socket_path" "$json"
+    ;;
+  ipc-command-json-file)
+    shift || true
+    if [ "$#" -lt 2 ]; then
+      printf 'usage: %s ipc-command-json-file SOCKET FILE\n' "$0" >&2
+      exit 2
+    fi
+    socket_path="$1"
+    json_file="$2"
+    send_ipc_json "$socket_path" "$(cat "$json_file")"
     ;;
   open)
     shift || true
@@ -184,7 +226,7 @@ case "$command" in
     fi
     ;;
   *)
-    printf 'usage: %s state|commands|status|plugin-list|runtime-list|command|command-json|command-json-file|command-seq-json|command-seq-json-file|open|view|mkdir|copy|move|delete\n' "$0" >&2
+    printf 'usage: %s state|commands|status|plugin-list|runtime-list|command|command-json|command-json-file|command-seq-json|command-seq-json-file|ipc-command-json|ipc-command-json-file|open|view|mkdir|copy|move|delete\n' "$0" >&2
     exit 2
     ;;
 esac

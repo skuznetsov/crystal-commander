@@ -90,8 +90,8 @@ Trust: `{F:0.8,G:0.6,R:0.8}` `shards build` passed for the SDK-only target, `cry
 
 ## LM-12: Stateful automation IPC skeleton is live
 
-Commander has a local Unix socket automation server that accepts one newline-delimited JSON `AutomationCommand` per client and delegates valid allowed commands to the same in-process automation executor as headless JSON paths. Malformed JSON returns a structured error envelope. Socket startup refuses to overwrite existing filesystem paths. Mutating IPC command IDs are denied unless the request explicitly sets `dry_run=true`.
+Commander has a local Unix socket automation server that accepts one newline-delimited JSON `AutomationCommand` per client and delegates valid allowed commands to the same in-process automation executor as headless JSON paths. `commanderctl` can send socket commands through `ipc-command-json` and `ipc-command-json-file`. Malformed JSON returns a structured error envelope. Socket startup refuses to overwrite existing filesystem paths. Mutating IPC command IDs are denied unless the request explicitly sets `dry_run=true`.
 
-Evidence: `src/automation_protocol.cr`, `src/automation_server.cr`, `spec/automation_protocol_spec.cr`, `spec/automation_server_spec.cr`, `specs/AutomationSpec.cs.md`.
+Evidence: `src/automation_protocol.cr`, `src/automation_server.cr`, `spec/automation_protocol_spec.cr`, `spec/automation_server_spec.cr`, `scripts/commanderctl`, `scripts/ipc_smoke`, `specs/AutomationSpec.cs.md`.
 
-Trust: `{F:0.8,G:0.6,R:0.8}` `crystal spec` passed with 84 examples, `sh scripts/spec_check` passed, `shards build` passed, `make commander` passed, `scripts/tabs_smoke` passed, `scripts/vfs_smoke` passed, and automation specs covered valid IPC, malformed JSON, existing-path safety, mutating command denial, and dry-run mutating command allowance.
+Trust: `{F:0.8,G:0.6,R:0.8}` `crystal spec` passed with 84 examples, `sh scripts/spec_check` passed, `shards build` passed, `make commander` passed, `scripts/tabs_smoke` passed, `scripts/vfs_smoke` passed, `scripts/ipc_smoke` passed, and automation specs covered valid IPC, malformed JSON, existing-path safety, mutating command denial, and dry-run mutating command allowance.

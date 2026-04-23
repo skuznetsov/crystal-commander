@@ -144,6 +144,8 @@ sh scripts/commanderctl runtime-list
 sh scripts/commanderctl command file.view 0
 sh scripts/commanderctl command-json '{"command_id":"panel.open_path","panel_index":0,"argument":"/tmp","dry_run":false}'
 sh scripts/commanderctl command-json-file /tmp/commander-command.json
+sh scripts/commanderctl ipc-command-json /tmp/commander.sock '{"command_id":"app.help"}'
+sh scripts/commanderctl ipc-command-json-file /tmp/commander.sock /tmp/commander-command.json
 COMMANDER_COMMAND_ARG=/tmp sh scripts/commanderctl command panel.open_path 0
 sh scripts/commanderctl open /tmp 0
 sh scripts/commanderctl view README.md

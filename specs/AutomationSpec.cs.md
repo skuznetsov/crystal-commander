@@ -113,6 +113,8 @@ Responses include `ok`, `status_text`, and a full `AppSnapshot`.
 - Verify `scripts/commanderctl command-json-file FILE` routes through `AutomationCommand`.
 - Verify `scripts/commanderctl command-seq-json JSON_ARRAY` routes through `Array(AutomationCommand)`.
 - Verify `scripts/commanderctl command-seq-json-file FILE` routes through `Array(AutomationCommand)`.
+- Verify `scripts/commanderctl ipc-command-json SOCKET JSON` sends one newline-delimited automation command to a running socket.
+- Verify `scripts/commanderctl ipc-command-json-file SOCKET FILE` sends one newline-delimited automation command loaded from a file.
 - Verify `COMMANDER_AUTOMATION_COMMANDS_JSON` executes an array of commands in one process and preserves pending state between them.
 - Verify `AutomationServer` accepts one newline-delimited JSON `AutomationCommand` per local Unix socket client.
 - Verify malformed IPC JSON returns a structured error envelope.
