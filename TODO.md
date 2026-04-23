@@ -86,7 +86,7 @@ Remaining:
 
 ## 4. Implement minimal embedded Lua API
 
-Status: TODO
+Status: PARTIAL
 
 Risk: CAUTION
 
@@ -96,6 +96,20 @@ Definition of Done:
 - Lua can register/execute a status-only command
 - Lua receives snapshots, not mutable Commander internals
 - no raw AppKit/C ABI access from Lua
+
+Evidence:
+
+- Lua plugin execution is gated behind `COMMANDER_ENABLE_LUA_PLUGINS=1`
+- `COMMANDER_ENABLE_LUA_PLUGINS=1 sh scripts/commanderctl state` emitted parseable JSON with two plugin manifests and no plugin load errors
+- `COMMANDER_ENABLE_LUA_PLUGINS=1 sh scripts/commanderctl command-json '{"command_id":"example.hello.status","panel_index":0}'` returned `ok=true` and the Lua status text
+- `COMMANDER_ENABLE_LUA_PLUGINS=1 sh scripts/commanderctl command-json '{"command_id":"example.vfs_probe.stat_panel","panel_index":0}'` returned `ok=true` and a Crystal-mediated VFS intent status
+- `scripts/vfs_smoke` passed and verified `snapshot.plugin_actions[0].operation == "stat"`
+- Current runtime executes Lua through an external `lua`/`lua5.4`/`luajit` process with copied snapshot data, not raw AppKit/C ABI or Crystal heap pointers
+
+Remaining:
+
+- In-process embedded `liblua`/FFI runtime is not implemented; current Lua runtime is an external-process adapter
+- GUI/live-app repro for the earlier `COMMANDER_ENABLE_LUA_PLUGINS=1 ./commander` crash was not run in this headless pass
 
 ## 5. Promote file operation UI
 

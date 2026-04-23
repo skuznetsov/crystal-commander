@@ -32,13 +32,13 @@ Evidence: `src/snapshots.cr`, `src/automation_protocol.cr`, `src/commander.cr`, 
 
 Trust: `{F:0.8,G:0.8,R:0.8}` headless state/command JSON smoke passed.
 
-## LM-5: Plugins are metadata-only until runtime gates open
+## LM-5: Plugin execution is gated and snapshot-only
 
-Plugin manifests are discovered and validated without executing plugin code. Lua/subprocess runtimes are stubs behind explicit enable gates.
+Plugin manifests are discovered and validated without executing plugin code. Lua command execution is disabled by default and requires `COMMANDER_ENABLE_LUA_PLUGINS=1`. The current Lua runtime is an external-process adapter, not in-process embedded `liblua`: it copies Crystal snapshot data into a generated Lua wrapper, supports status updates and permission-gated VFS intent actions, and does not pass raw AppKit/C ABI or Crystal heap pointers to Lua. The subprocess runtime remains a disabled stub.
 
-Evidence: `src/plugin_manifest.cr`, `src/plugin_host.cr`, `src/plugin_runtime.cr`, `plugins/example/plugin.json`.
+Evidence: `src/plugin_manifest.cr`, `src/plugin_host.cr`, `src/plugin_runtime.cr`, `plugins/example/plugin.json`, `plugins/vfs_probe/plugin.json`, `scripts/vfs_smoke`.
 
-Trust: `{F:0.8,G:0.8,R:0.8}` build passed and plugin/runtime list smoke passed.
+Trust: `{F:0.8,G:0.7,R:0.8}` headless Lua state dump passed with plugin manifests and no plugin load errors, `example.hello.status` returned `ok=true` with Lua status text, `example.vfs_probe.stat_panel` returned `ok=true` with a Crystal-mediated VFS intent status, and `scripts/vfs_smoke` verified the emitted `snapshot.plugin_actions[0].operation == "stat"`. GUI/live-app Lua crash repro has not been rerun in this pass.
 
 ## LM-6: Destructive file operations remain plan-only
 

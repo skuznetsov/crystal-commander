@@ -243,14 +243,26 @@ Available MVP context fields:
 - `ctx.plugin_id`
 - `ctx.active_panel`
 - `ctx.panel.path`
+- `ctx.panel.uri`
 - `ctx.panel.display_path`
 - `ctx.panel.cursor`
 - `ctx.panel.entries`
 - `ctx.panel.selected_entry`
 - `ctx.panel.marked_paths`
 
+Available VFS intent helpers:
+
+```lua
+local parsed, err = commander.vfs.parse(ctx.panel.uri)
+local schemes = commander.vfs.allowed_schemes()
+local action, action_err = commander.vfs.request("stat", ctx.panel.uri)
+```
+
+Lua VFS helpers are permission-gated by manifest entries such as `vfs.read:file`. `commander.vfs.request` returns a Commander-mediated intent action; it does not execute provider I/O inside Lua.
+
 Current safety boundaries:
 
 - Lua receives copied snapshot data, not Crystal heap pointers.
 - Lua can update status text through `commander.status`.
-- Lua cannot directly mutate panels, call AppKit, call renderer C ABI, run shell commands through Commander, or perform mediated file operations yet.
+- Lua can declare read-only VFS intent actions for Crystal to mediate.
+- Lua cannot directly mutate panels, call AppKit, call renderer C ABI, run shell commands through Commander, or perform provider I/O by itself.

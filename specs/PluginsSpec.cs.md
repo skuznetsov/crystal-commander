@@ -49,6 +49,7 @@ end)
 -- ctx.plugin_id
 -- ctx.active_panel
 -- ctx.panel.path
+-- ctx.panel.uri
 -- ctx.panel.display_path
 -- ctx.panel.cursor
 -- ctx.panel.entries
