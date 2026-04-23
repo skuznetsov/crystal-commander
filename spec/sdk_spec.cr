@@ -65,6 +65,21 @@ describe Commander::SDK do
     sequence.map(&.command_id).should eq(["tab.new", "tab.next"])
   end
 
+  it "constructs and parses automation request envelopes" do
+    command_request = Commander::SDK.command_request("panel.open_path", panel_index: 1, argument: "/tmp")
+
+    command_request.kind.should eq("command")
+    command_request.command.not_nil!.command_id.should eq("panel.open_path")
+    command_request.command.not_nil!.panel_index.should eq(1)
+
+    Commander::SDK.snapshot_request.kind.should eq("snapshot")
+    Commander::SDK.status_request.kind.should eq("status")
+
+    parsed = Commander::SDK.parse_request_json(%({"kind":"status"}))
+    parsed.kind.should eq("status")
+    parsed.command.should be_nil
+  end
+
   it "exposes VFS helpers without provider I/O" do
     path = Commander::SDK.parse_vfs_uri("sftp://example.com/home/user")
 

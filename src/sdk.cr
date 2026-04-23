@@ -15,8 +15,28 @@ module Commander
       AutomationCommand.new(command_id, panel_index, argument, dry_run)
     end
 
+    def self.command_request(command : AutomationCommand) : AutomationRequest
+      AutomationRequest.command(command)
+    end
+
+    def self.command_request(command_id : String, panel_index : Int32 = 0, argument : String? = nil, dry_run : Bool = false) : AutomationRequest
+      command_request(command(command_id, panel_index, argument, dry_run))
+    end
+
+    def self.snapshot_request : AutomationRequest
+      AutomationRequest.snapshot
+    end
+
+    def self.status_request : AutomationRequest
+      AutomationRequest.status
+    end
+
     def self.parse_command_json(json : String) : AutomationCommand
       AutomationCommand.from_json(json)
+    end
+
+    def self.parse_request_json(json : String) : AutomationRequest
+      AutomationRequest.from_json(json)
     end
 
     def self.parse_command_sequence_json(json : String) : Array(AutomationCommand)

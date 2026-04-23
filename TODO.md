@@ -374,12 +374,13 @@ Evidence:
 - Added `src/commander/sdk_info.cr` SDK-only shard build target
 - Added `/bin/` to `.gitignore` for shard build artifacts
 - Added automation helpers for command construction and JSON parsing
+- Added automation request helpers for structured command/snapshot/status IPC envelopes
 - Added plugin, VFS, workspace rendering, recording backend, and terminal-grid backend helpers
 - Added `docs/SDK.md` with examples, limitations, and stability rules
 - Added shard metadata description and documented why the macOS executable build remains Makefile-owned
 - Added `spec/sdk_spec.cr` proving the SDK facade is importable and covers automation, VFS, plugin registry, and UI rendering helpers without launching GUI
 - Verified SDK spec through both repository-local and shard-style import paths
-- Validation: `shards build` passed for SDK-only target; `crystal spec` passed with 77 examples; `sh scripts/spec_check` passed; `make commander` passed; `scripts/tabs_smoke` passed; `scripts/vfs_smoke` passed
+- Validation: `crystal spec spec/sdk_spec.cr` passed with 5 examples; `crystal spec` passed with 90 examples; `sh scripts/spec_check` passed; `shards build` passed for SDK-only target; prior full build/smoke validation passed with `make commander`, `scripts/tabs_smoke`, and `scripts/vfs_smoke`
 
 Remaining:
 

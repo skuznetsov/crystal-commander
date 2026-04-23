@@ -24,10 +24,13 @@ Use automation commands when an external controller, AppleScript bridge, Accessi
 
 ```crystal
 command = Commander::SDK.command("panel.open_path", panel_index: 0, argument: "/tmp")
+request = Commander::SDK.command_request(command)
+state_request = Commander::SDK.snapshot_request
+status_request = Commander::SDK.status_request
 sequence = Commander::SDK.parse_command_sequence_json(%([{"command_id":"tab.new"}]))
 ```
 
-Automation uses `Commander::AutomationCommand` and `Commander::AutomationResponse`. Commands must route through `CommandRegistry`; automation must not implement file-manager behavior separately.
+Automation uses `Commander::AutomationCommand`, `Commander::AutomationRequest`, and `Commander::AutomationResponse`. Commands must route through `CommandRegistry`; automation must not implement file-manager behavior separately. Stateful IPC clients should prefer `AutomationRequest` envelopes for read-only state/status queries while legacy raw `AutomationCommand` JSON remains supported.
 
 ### Command registry
 
