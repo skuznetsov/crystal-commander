@@ -103,9 +103,10 @@ Responses include `ok`, `status_text`, and a full `AppSnapshot`.
 - Headless mutating commands SHOULD support dry-run planning through `COMMANDER_DRY_RUN=1`.
 - One-shot headless commands do not preserve pending operation state across processes; pending execution needs a stateful app session, IPC, or direct command form.
 - Stateful IPC handlers MUST call the same in-process automation command executor used by headless/test paths.
-- Stateful IPC MUST reject mutating command IDs unless the request explicitly sets `dry_run=true`.
+- Stateful IPC MUST reject mutating commands unless the request explicitly sets `dry_run=true`.
+- Stateful IPC SHOULD use `CommandRegistry` mutation metadata for known commands and a conservative fallback for unknown command IDs.
 - Snapshot structs are read-only transfer objects, not mutable panel state.
-- Command snapshots expose metadata only; execution still goes through `CommandRegistry`.
+- Command snapshots expose metadata only, including whether a command may mutate files; execution still goes through `CommandRegistry`.
 
 ## Checks
 
@@ -132,7 +133,7 @@ Responses include `ok`, `status_text`, and a full `AppSnapshot`.
 - Verify `AutomationServer` accepts structured `AutomationRequest` envelopes.
 - Verify malformed IPC JSON returns a structured error envelope.
 - Verify IPC socket startup refuses to overwrite an existing filesystem path.
-- Verify mutating IPC commands are rejected unless `dry_run=true`.
+- Verify metadata-marked mutating IPC commands are rejected unless `dry_run=true`.
 - Verify `scripts/commanderctl open PATH PANEL` routes to `panel.open_path`.
 - Verify `scripts/commanderctl view PATH` routes to read-only `file.view_path`.
 - Verify `scripts/commanderctl mkdir PATH PANEL` fails if the path already exists.

@@ -8,8 +8,9 @@ module Commander
     getter title : String
     getter description : String
     getter plugin_id : String?
+    getter mutating : Bool
 
-    def initialize(@id : String, @title : String, @description : String, @plugin_id : String?)
+    def initialize(@id : String, @title : String, @description : String, @plugin_id : String?, @mutating : Bool = false)
     end
   end
 

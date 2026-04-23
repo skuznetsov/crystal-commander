@@ -9,6 +9,7 @@ describe "Commander snapshots" do
     r = Commander::CommandSnapshot.from_json(json)
     r.id.should eq("id1")
     r.plugin_id.should eq("plug")
+    r.mutating.should be_false
   end
 
   it "PreviewSnapshot holds error or content" do

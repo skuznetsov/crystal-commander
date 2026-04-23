@@ -160,7 +160,7 @@ sh scripts/commanderctl delete 0 --dry-run
 ```
 
 `commanderctl` uses the linked `./commander` binary and builds it through `make commander` if needed, so native AppKit/ObjC++ link flags stay centralized in the Makefile.
-Command snapshots include `plugin_id` for manifest-declared plugin placeholders.
+Command snapshots include `plugin_id` for manifest-declared plugin placeholders and `mutating` metadata for automation policy decisions.
 
 CodeSpeak spec shape check:
 

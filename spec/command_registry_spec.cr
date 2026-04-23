@@ -42,6 +42,18 @@ describe Commander::CommandRegistry do
     called.should be_true
   end
 
+  it "tracks mutating command metadata through aliases" do
+    registry = Commander::CommandRegistry.new
+    registry.register("safe", "Safe") { |_c| }
+    registry.register("write", "Write", mutating: true) { |_c| }
+    registry.register_alias("write.alias", "write")
+
+    registry.mutating?("safe").should be_false
+    registry.mutating?("write").should be_true
+    registry.mutating?("write.alias").should be_true
+    registry.mutating?("missing").should be_nil
+  end
+
   it "iterates over registered commands" do
     registry = Commander::CommandRegistry.new
     registry.register("c1", "C1") { |_c| }
@@ -64,5 +76,13 @@ describe Commander::CommandRegistry do
     snap.title.should eq("Snap")
     snap.description.should eq("desc")
     snap.plugin_id.should eq("plug1")
+    snap.mutating.should be_false
+  end
+
+  it "includes mutating metadata in command snapshots" do
+    registry = Commander::CommandRegistry.new
+    registry.register("write.cmd", "Write", mutating: true) { |_c| }
+
+    registry.to_snapshots.first.mutating.should be_true
   end
 end

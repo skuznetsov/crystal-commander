@@ -114,7 +114,10 @@ class CommanderApp
     set_active_panel(0)
     report_plugin_manifest_status
     @automation_server.try do |server|
-      server.start(-> { debug_snapshot }) { |command| handle_automation_command(command) }
+      server.start(
+        -> { debug_snapshot },
+        ->(command : Commander::AutomationCommand) { Commander::AutomationPolicy.ipc_allowed?(command, @commands) }
+      ) { |command| handle_automation_command(command) }
     end
 
     while @running && renderer.pump(16)
@@ -366,11 +369,11 @@ class CommanderApp
       report_file_operation_plan(Commander::FileOperationKind::Edit, ctx.panel_index)
     end
 
-    @commands.register("file.copy", "Copy", "Copy selected entries to another panel") do |ctx|
+    @commands.register("file.copy", "Copy", "Copy selected entries to another panel", mutating: true) do |ctx|
       report_file_operation_plan(Commander::FileOperationKind::Copy, ctx.panel_index)
     end
 
-    @commands.register("file.copy_to", "Copy to", "Copy selected or marked regular files to a target directory") do |ctx|
+    @commands.register("file.copy_to", "Copy to", "Copy selected or marked regular files to a target directory", mutating: true) do |ctx|
       target = ctx.argument
       if target && !target.empty?
         copy_to(ctx.panel_index, target)
@@ -392,11 +395,11 @@ class CommanderApp
       end
     end
 
-    @commands.register("file.mkdir", "Mkdir", "Create a directory in the active panel") do |ctx|
+    @commands.register("file.mkdir", "Mkdir", "Create a directory in the active panel", mutating: true) do |ctx|
       report_file_operation_plan(Commander::FileOperationKind::Mkdir, ctx.panel_index)
     end
 
-    @commands.register("file.mkdir_named", "Mkdir named", "Create a directory from command argument") do |ctx|
+    @commands.register("file.mkdir_named", "Mkdir named", "Create a directory from command argument", mutating: true) do |ctx|
       name = ctx.argument
       if name && !name.empty?
         mkdir_named(ctx.panel_index, name)
@@ -430,7 +433,7 @@ class CommanderApp
       update_status("Panel #{ctx.panel_index + 1}: marks cleared")
     end
 
-    @commands.register("file.operation_execute", "Execute pending operation", "Execute the currently pending file operation after confirmation") do |_ctx|
+    @commands.register("file.operation_execute", "Execute pending operation", "Execute the currently pending file operation after confirmation", mutating: true) do |_ctx|
       execute_pending_operation
     end
 

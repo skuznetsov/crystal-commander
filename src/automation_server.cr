@@ -19,7 +19,7 @@ module Commander
       !@socket_path.empty?
     end
 
-    def start(snapshot_provider : -> AppSnapshot, &executor : AutomationCommand -> AutomationResponse) : Nil
+    def start(snapshot_provider : -> AppSnapshot, policy : AutomationCommand -> Bool, &executor : AutomationCommand -> AutomationResponse) : Nil
       return if @running
       raise "automation socket path is empty" if @socket_path.empty?
       raise "automation socket path already exists: #{@socket_path}" if File.exists?(@socket_path)
@@ -29,7 +29,13 @@ module Commander
       @running = true
 
       spawn(name: "commander-automation-server") do
-        accept_loop(snapshot_provider, executor)
+        accept_loop(snapshot_provider, policy, executor)
+      end
+    end
+
+    def start(snapshot_provider : -> AppSnapshot, &executor : AutomationCommand -> AutomationResponse) : Nil
+      start(snapshot_provider, ->(command : AutomationCommand) { AutomationPolicy.ipc_allowed?(command) }) do |command|
+        executor.call(command)
       end
     end
 
@@ -47,21 +53,25 @@ module Commander
       @created_socket = false
     end
 
-    def handle_command(command : AutomationCommand, &executor : AutomationCommand -> AutomationResponse) : AutomationResponse
-      unless AutomationPolicy.ipc_allowed?(command)
+    def handle_command(command : AutomationCommand, policy : AutomationCommand -> Bool, &executor : AutomationCommand -> AutomationResponse) : AutomationResponse
+      unless policy.call(command)
         return AutomationResponse.error(AutomationPolicy.ipc_denial(command))
       end
 
       yield command
     end
 
-    def handle_request(request : AutomationRequest, snapshot_provider : -> AppSnapshot, &executor : AutomationCommand -> AutomationResponse) : AutomationResponse
+    def handle_command(command : AutomationCommand, &executor : AutomationCommand -> AutomationResponse) : AutomationResponse
+      handle_command(command, ->(candidate : AutomationCommand) { AutomationPolicy.ipc_allowed?(candidate) }, &executor)
+    end
+
+    def handle_request(request : AutomationRequest, snapshot_provider : -> AppSnapshot, policy : AutomationCommand -> Bool, &executor : AutomationCommand -> AutomationResponse) : AutomationResponse
       case request.kind
       when "command"
         command = request.command
         return AutomationResponse.error("automation command request requires command") unless command
 
-        handle_command(command, &executor)
+        handle_command(command, policy, &executor)
       when "snapshot", "state", "status"
         AutomationResponse.snapshot(snapshot_provider.call)
       else
@@ -69,24 +79,28 @@ module Commander
       end
     end
 
-    private def accept_loop(snapshot_provider : -> AppSnapshot, executor : AutomationCommand -> AutomationResponse) : Nil
+    def handle_request(request : AutomationRequest, snapshot_provider : -> AppSnapshot, &executor : AutomationCommand -> AutomationResponse) : AutomationResponse
+      handle_request(request, snapshot_provider, ->(command : AutomationCommand) { AutomationPolicy.ipc_allowed?(command) }, &executor)
+    end
+
+    private def accept_loop(snapshot_provider : -> AppSnapshot, policy : AutomationCommand -> Bool, executor : AutomationCommand -> AutomationResponse) : Nil
       while @running
         client = @server.try(&.accept?)
         next unless client
 
         accepted = client.not_nil!
         spawn(name: "commander-automation-client") do
-          handle_client(accepted, snapshot_provider, executor)
+          handle_client(accepted, snapshot_provider, policy, executor)
         end
       end
     rescue IO::Error
       # Closing the server during shutdown interrupts accept.
     end
 
-    private def handle_client(client : UNIXSocket, snapshot_provider : -> AppSnapshot, executor : AutomationCommand -> AutomationResponse) : Nil
+    private def handle_client(client : UNIXSocket, snapshot_provider : -> AppSnapshot, policy : AutomationCommand -> Bool, executor : AutomationCommand -> AutomationResponse) : Nil
       line = client.gets
       if line
-        client.puts(handle_line(line, snapshot_provider, executor))
+        client.puts(handle_line(line, snapshot_provider, policy, executor))
       else
         client.puts(error_json("empty automation request"))
       end
@@ -98,14 +112,14 @@ module Commander
       client.close rescue nil
     end
 
-    private def handle_line(line : String, snapshot_provider : -> AppSnapshot, executor : AutomationCommand -> AutomationResponse) : String
+    private def handle_line(line : String, snapshot_provider : -> AppSnapshot, policy : AutomationCommand -> Bool, executor : AutomationCommand -> AutomationResponse) : String
       parsed = JSON.parse(line)
       if parsed.as_h.has_key?("kind")
         request = AutomationRequest.from_json(line)
-        handle_request(request, snapshot_provider, &executor).to_json
+        handle_request(request, snapshot_provider, policy, &executor).to_json
       else
         command = AutomationCommand.from_json(line)
-        handle_command(command, &executor).to_json
+        handle_command(command, policy, &executor).to_json
       end
     end
 

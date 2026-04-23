@@ -42,4 +42,18 @@ describe Commander::AutomationPolicy do
     Commander::AutomationPolicy.ipc_allowed?(command).should be_false
     Commander::AutomationPolicy.ipc_allowed?(dry_run).should be_true
   end
+
+  it "prefers command registry mutation metadata for known IPC commands" do
+    registry = Commander::CommandRegistry.new
+    read_plan = Commander::AutomationCommand.new("file.delete_plan")
+    write_command = Commander::AutomationCommand.new("custom.write")
+    dry_write_command = Commander::AutomationCommand.new("custom.write", dry_run: true)
+
+    registry.register("file.delete_plan", "Delete plan", mutating: false) { |_ctx| }
+    registry.register("custom.write", "Write", mutating: true) { |_ctx| }
+
+    Commander::AutomationPolicy.ipc_allowed?(read_plan, registry).should be_true
+    Commander::AutomationPolicy.ipc_allowed?(write_command, registry).should be_false
+    Commander::AutomationPolicy.ipc_allowed?(dry_write_command, registry).should be_true
+  end
 end

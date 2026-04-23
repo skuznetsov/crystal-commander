@@ -1,4 +1,5 @@
 require "json"
+require "./command_registry"
 require "./snapshots"
 
 module Commander
@@ -24,8 +25,21 @@ module Commander
       MUTATING_PREFIXES.any? { |prefix| command_id.starts_with?(prefix) }
     end
 
+    def self.mutating?(command_id : String, registry : CommandRegistry) : Bool
+      metadata = registry.mutating?(command_id)
+      return metadata unless metadata.nil?
+
+      mutating?(command_id)
+    end
+
     def self.ipc_allowed?(command : AutomationCommand) : Bool
       return true unless mutating?(command.command_id)
+
+      command.dry_run
+    end
+
+    def self.ipc_allowed?(command : AutomationCommand, registry : CommandRegistry) : Bool
+      return true unless mutating?(command.command_id, registry)
 
       command.dry_run
     end

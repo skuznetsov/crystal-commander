@@ -114,6 +114,29 @@ describe Commander::AutomationServer do
     File.delete(path) if path && File.exists?(path)
   end
 
+  it "uses the injected IPC policy for command requests" do
+    path = temp_socket_path("injected-policy")
+    server = Commander::AutomationServer.new(path)
+    executed = false
+    policy = ->(command : Commander::AutomationCommand) { command.command_id == "safe.command" }
+    server.start(-> { automation_server_snapshot }, policy) do |command|
+      executed = true
+      Commander::AutomationResponse.new(true, command.command_id, automation_server_snapshot)
+    end
+
+    client = UNIXSocket.new(path)
+    client.puts(%({"kind":"command","command":{"command_id":"file.mkdir_named"}}))
+    response = JSON.parse(client.gets.not_nil!)
+
+    response["ok"].as_bool.should be_false
+    response["error"].as_s.should contain("dry_run=true")
+    executed.should be_false
+  ensure
+    client.try(&.close) rescue nil
+    server.try(&.stop) rescue nil
+    File.delete(path) if path && File.exists?(path)
+  end
+
   it "refuses to replace an existing filesystem path" do
     path = temp_socket_path("existing")
     File.write(path, "not a socket")

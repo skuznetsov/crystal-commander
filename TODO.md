@@ -80,16 +80,18 @@ Evidence:
 - Malformed JSON returns a structured `{ok:false,status_text,error}` envelope instead of a raw stack trace
 - Socket paths are fail-closed: existing filesystem paths are refused and not overwritten
 - IPC mutating commands are denied unless the request sets `dry_run=true`
+- IPC policy uses `CommandRegistry` mutation metadata for known commands and a conservative fallback for unknown command IDs
+- Command snapshots expose `mutating` metadata for automation clients
 - Added `spec/automation_server_spec.cr` covering valid IPC commands, malformed requests, and existing-path safety
 - Added automation policy specs covering read-like commands, mutating command denial, and dry-run mutating command allowance
 - Added `scripts/ipc_smoke` with a fixture Unix socket server to verify the CLI IPC client without launching GUI
 - Extended `scripts/ipc_smoke` to verify read-only IPC status requests without launching GUI
-- Validation: `crystal spec` passed with 89 examples; `sh scripts/spec_check` passed; `shards build` passed; `make commander` passed; `scripts/tabs_smoke` passed; `scripts/vfs_smoke` passed; `scripts/ipc_smoke` passed
+- Validation: targeted registry/protocol/server/snapshot specs passed with 26 examples; `crystal spec` passed with 96 examples; `sh scripts/spec_check` passed; `make commander` passed; `shards build` passed; `commanderctl state` verified `file.copy_to.mutating=true` and `file.delete_plan.mutating=false`; `scripts/tabs_smoke`, `scripts/vfs_smoke`, and `scripts/ipc_smoke` passed
 
 Remaining:
 
 - GUI/live-app smoke for `COMMANDER_AUTOMATION_SOCKET=<path> ./commander` is not run in this headless pass
-- IPC mutating policy is command-ID based and conservative; future work can replace it with command metadata/policy declarations
+- IPC mutating policy still needs richer permission classes later; current metadata is a boolean filesystem-mutation guard
 
 ## 4. Implement minimal embedded Lua API
 
