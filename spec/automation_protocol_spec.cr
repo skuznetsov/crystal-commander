@@ -11,3 +11,21 @@ describe Commander::AutomationCommand do
     command.dry_run.should be_false
   end
 end
+
+describe Commander::AutomationPolicy do
+  it "allows read-like automation commands by default" do
+    command = Commander::AutomationCommand.new("panel.open_path")
+
+    Commander::AutomationPolicy.mutating?(command.command_id).should be_false
+    Commander::AutomationPolicy.ipc_allowed?(command).should be_true
+  end
+
+  it "requires dry-run for mutating IPC commands" do
+    command = Commander::AutomationCommand.new("file.mkdir_named", argument: "/tmp/example")
+    dry_run = Commander::AutomationCommand.new("file.mkdir_named", argument: "/tmp/example", dry_run: true)
+
+    Commander::AutomationPolicy.mutating?(command.command_id).should be_true
+    Commander::AutomationPolicy.ipc_allowed?(command).should be_false
+    Commander::AutomationPolicy.ipc_allowed?(dry_run).should be_true
+  end
+end

@@ -69,6 +69,51 @@ describe Commander::AutomationServer do
     File.delete(path) if path && File.exists?(path)
   end
 
+  it "blocks mutating IPC commands unless dry-run is requested" do
+    path = temp_socket_path("policy-block")
+    server = Commander::AutomationServer.new(path)
+    executed = false
+    server.start do |command|
+      executed = true
+      Commander::AutomationResponse.new(true, command.command_id, automation_server_snapshot)
+    end
+
+    client = UNIXSocket.new(path)
+    client.puts(%({"command_id":"file.mkdir_named","argument":"/tmp/example"}))
+    response = JSON.parse(client.gets.not_nil!)
+
+    response["ok"].as_bool.should be_false
+    response["error"].as_s.should contain("dry_run=true")
+    executed.should be_false
+  ensure
+    client.try(&.close) rescue nil
+    server.try(&.stop) rescue nil
+    File.delete(path) if path && File.exists?(path)
+  end
+
+  it "allows mutating IPC commands when dry-run is requested" do
+    path = temp_socket_path("policy-dry-run")
+    server = Commander::AutomationServer.new(path)
+    server.start do |command|
+      Commander::AutomationResponse.new(
+        ok: true,
+        status_text: "dry-run #{command.command_id}",
+        snapshot: automation_server_snapshot
+      )
+    end
+
+    client = UNIXSocket.new(path)
+    client.puts(%({"command_id":"file.mkdir_named","argument":"/tmp/example","dry_run":true}))
+    response = JSON.parse(client.gets.not_nil!)
+
+    response["ok"].as_bool.should be_true
+    response["status_text"].as_s.should eq("dry-run file.mkdir_named")
+  ensure
+    client.try(&.close) rescue nil
+    server.try(&.stop) rescue nil
+    File.delete(path) if path && File.exists?(path)
+  end
+
   it "refuses to replace an existing filesystem path" do
     path = temp_socket_path("existing")
     File.write(path, "not a socket")

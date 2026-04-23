@@ -44,6 +44,10 @@ module Commander
     end
 
     def handle_command(command : AutomationCommand, &executor : AutomationCommand -> AutomationResponse) : AutomationResponse
+      unless AutomationPolicy.ipc_allowed?(command)
+        return AutomationResponse.error(AutomationPolicy.ipc_denial(command))
+      end
+
       yield command
     end
 
