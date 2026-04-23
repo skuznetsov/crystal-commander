@@ -385,7 +385,9 @@ class CommanderApp
     sync_all
     set_active_panel(0)
     report_plugin_manifest_status
-    @automation_server.try(&.start)
+    @automation_server.try do |server|
+      server.start { |command| handle_automation_command(command) }
+    end
 
     while @running && renderer.pump(16)
       while event = renderer.poll_event

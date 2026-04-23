@@ -49,7 +49,7 @@ Definition of Done:
 
 ## 3. Add stateful automation IPC
 
-Status: TODO
+Status: PARTIAL
 
 Risk: CAUTION
 
@@ -60,6 +60,21 @@ Definition of Done:
 - response is JSON `AutomationResponse`
 - disabled by default
 - no destructive commands without explicit command policy
+
+Evidence:
+
+- Added local Unix socket listener in `Commander::AutomationServer`
+- IPC accepts one newline-delimited JSON `AutomationCommand` per client and returns JSON
+- Valid commands route through the same in-process automation executor used by headless JSON paths
+- Malformed JSON returns a structured `{ok:false,status_text,error}` envelope instead of a raw stack trace
+- Socket paths are fail-closed: existing filesystem paths are refused and not overwritten
+- Added `spec/automation_server_spec.cr` covering valid IPC commands, malformed requests, and existing-path safety
+- Validation: `crystal spec` passed with 80 examples; `sh scripts/spec_check` passed; `shards build` passed; `make commander` passed; `scripts/tabs_smoke` passed; `scripts/vfs_smoke` passed
+
+Remaining:
+
+- GUI/live-app smoke for `COMMANDER_AUTOMATION_SOCKET=<path> ./commander` is not run in this headless pass
+- Mutating command policy is still inherited from existing command/dry-run behavior; no separate IPC allowlist yet
 
 ## 4. Implement minimal embedded Lua API
 

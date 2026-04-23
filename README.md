@@ -129,7 +129,7 @@ Open the application and the window appears as a normal macOS window.
 - `COMMANDER_COMMAND_ARG=<text>` — optional single string argument for headless command execution.
 - `COMMANDER_AUTOMATION_COMMAND_JSON=<json>` — execute JSON `AutomationCommand`, return JSON `AutomationResponse`.
 - `COMMANDER_DRY_RUN=1` — plan mutating headless commands without applying filesystem changes.
-- `COMMANDER_AUTOMATION_SOCKET=<path>` — reserved path for future stateful local IPC; listener is not implemented yet.
+- `COMMANDER_AUTOMATION_SOCKET=<path>` — create a local Unix socket listener for stateful JSON automation while the app is running.
 - `COMMANDER_ENABLE_LUA_PLUGINS=1` — enable Lua plugin command execution through an external `lua`, `lua5.4`, or `luajit` binary.
 - `COMMANDER_ENABLE_SUBPROCESS_PLUGINS=1` — reserved gate for future subprocess plugin execution; runtime still stubbed.
 

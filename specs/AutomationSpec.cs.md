@@ -113,6 +113,9 @@ Responses include `ok`, `status_text`, and a full `AppSnapshot`.
 - Verify `scripts/commanderctl command-seq-json JSON_ARRAY` routes through `Array(AutomationCommand)`.
 - Verify `scripts/commanderctl command-seq-json-file FILE` routes through `Array(AutomationCommand)`.
 - Verify `COMMANDER_AUTOMATION_COMMANDS_JSON` executes an array of commands in one process and preserves pending state between them.
+- Verify `AutomationServer` accepts one newline-delimited JSON `AutomationCommand` per local Unix socket client.
+- Verify malformed IPC JSON returns a structured error envelope.
+- Verify IPC socket startup refuses to overwrite an existing filesystem path.
 - Verify `scripts/commanderctl open PATH PANEL` routes to `panel.open_path`.
 - Verify `scripts/commanderctl view PATH` routes to read-only `file.view_path`.
 - Verify `scripts/commanderctl mkdir PATH PANEL` fails if the path already exists.
