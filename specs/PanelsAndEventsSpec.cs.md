@@ -13,6 +13,7 @@ Panels are the core user model. The commander supports one or more panels, with 
 - Bare key bindings SHOULD NOT accidentally shadow modifier-specific command bindings.
 - Enter MUST activate the selected row in the active panel.
 - Backspace or parent navigation MUST reload the affected panel path and rows.
+- Returning from a child directory to its parent SHOULD restore the child directory row when the panel can identify it.
 - Marking entries MUST update Crystal panel state first; file operations consume marked entries later.
 - F1-F10 SHOULD map to canonical MC-style command IDs when macOS delivers function key events.
 - Mouse row selection MUST become a Crystal-visible event or state update.

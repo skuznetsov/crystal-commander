@@ -47,6 +47,13 @@ Definition of Done:
 - all commands from TODO item 1 pass
 - update `LANDMARKS.md` trust levels if verification succeeds
 
+Evidence:
+
+- Extracted `PanelEntry` and `PanelState` into `src/panel_state.cr` so panel navigation can be tested without constructing `CommanderApp` or launching AppKit.
+- Added regression specs for restoring the child directory row when returning to a parent directory.
+- Added regression specs for preserving independent return offsets for sibling directories.
+- Validation: `crystal spec spec/panel_state_spec.cr` passed with 2 examples; `crystal spec` passed with 92 examples; `sh scripts/spec_check` passed; `shards build` passed; `make commander` passed; `scripts/tabs_smoke`, `scripts/vfs_smoke`, and `scripts/ipc_smoke` passed.
+
 ## 3. Add stateful automation IPC
 
 Status: PARTIAL

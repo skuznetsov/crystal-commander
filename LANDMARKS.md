@@ -48,6 +48,14 @@ Evidence: `src/file_operations.cr`, `src/commander.cr`, `specs/PanelsAndEventsSp
 
 Trust: `{F:0.8,G:0.7,R:0.8}` build passed and dry-run headless operation smoke passed.
 
+## LM-6a: Panel parent navigation restores child rows
+
+`PanelState` is extracted into `src/panel_state.cr` and owns local panel entries, cursor, marks, and parent-return offsets independently from `CommanderApp`/AppKit. When a panel enters a child directory and then returns to the parent, it restores the cursor to the child directory row when that row is present. Sibling child directories keep independent return offsets.
+
+Evidence: `src/panel_state.cr`, `spec/panel_state_spec.cr`, `specs/PanelsAndEventsSpec.cs.md`.
+
+Trust: `{F:0.8,G:0.6,R:0.8}` `crystal spec spec/panel_state_spec.cr` passed with 2 examples, `crystal spec` passed with 92 examples, `sh scripts/spec_check` passed, `shards build` passed, `make commander` passed, and `scripts/tabs_smoke`, `scripts/vfs_smoke`, and `scripts/ipc_smoke` passed.
+
 ## LM-7: Grok is useful but must be bounded
 
 Grok ACP works on subscription/default auth and can perform useful source-grounded review/patches, but needs wrapper-enforced scope and timeout hygiene.
