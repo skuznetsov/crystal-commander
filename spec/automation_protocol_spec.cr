@@ -12,6 +12,20 @@ describe Commander::AutomationCommand do
   end
 end
 
+describe Commander::AutomationRequest do
+  it "wraps commands for structured IPC requests" do
+    request = Commander::AutomationRequest.from_json(%({"kind":"command","command":{"command_id":"app.help"}}))
+
+    request.kind.should eq("command")
+    request.command.not_nil!.command_id.should eq("app.help")
+  end
+
+  it "creates read-only state request envelopes" do
+    Commander::AutomationRequest.snapshot.to_json.should contain(%("kind":"snapshot"))
+    Commander::AutomationRequest.status.to_json.should contain(%("kind":"status"))
+  end
+end
+
 describe Commander::AutomationPolicy do
   it "allows read-like automation commands by default" do
     command = Commander::AutomationCommand.new("panel.open_path")

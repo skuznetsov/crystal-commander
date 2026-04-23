@@ -139,6 +139,24 @@ case "$command" in
     json_file="$2"
     send_ipc_json "$socket_path" "$(cat "$json_file")"
     ;;
+  ipc-state)
+    shift || true
+    if [ "$#" -lt 1 ]; then
+      printf 'usage: %s ipc-state SOCKET\n' "$0" >&2
+      exit 2
+    fi
+    socket_path="$1"
+    send_ipc_json "$socket_path" '{"kind":"snapshot"}'
+    ;;
+  ipc-status)
+    shift || true
+    if [ "$#" -lt 1 ]; then
+      printf 'usage: %s ipc-status SOCKET\n' "$0" >&2
+      exit 2
+    fi
+    socket_path="$1"
+    send_ipc_json "$socket_path" '{"kind":"status"}' | python3 -c 'import json,sys; print(json.load(sys.stdin)["status_text"])'
+    ;;
   open)
     shift || true
     if [ "$#" -lt 1 ]; then
@@ -226,7 +244,7 @@ case "$command" in
     fi
     ;;
   *)
-    printf 'usage: %s state|commands|status|plugin-list|runtime-list|command|command-json|command-json-file|command-seq-json|command-seq-json-file|ipc-command-json|ipc-command-json-file|open|view|mkdir|copy|move|delete\n' "$0" >&2
+    printf 'usage: %s state|commands|status|plugin-list|runtime-list|command|command-json|command-json-file|command-seq-json|command-seq-json-file|ipc-command-json|ipc-command-json-file|ipc-state|ipc-status|open|view|mkdir|copy|move|delete\n' "$0" >&2
     exit 2
     ;;
 esac

@@ -146,6 +146,8 @@ sh scripts/commanderctl command-json '{"command_id":"panel.open_path","panel_ind
 sh scripts/commanderctl command-json-file /tmp/commander-command.json
 sh scripts/commanderctl ipc-command-json /tmp/commander.sock '{"command_id":"app.help"}'
 sh scripts/commanderctl ipc-command-json-file /tmp/commander.sock /tmp/commander-command.json
+sh scripts/commanderctl ipc-state /tmp/commander.sock
+sh scripts/commanderctl ipc-status /tmp/commander.sock
 COMMANDER_COMMAND_ARG=/tmp sh scripts/commanderctl command panel.open_path 0
 sh scripts/commanderctl open /tmp 0
 sh scripts/commanderctl view README.md

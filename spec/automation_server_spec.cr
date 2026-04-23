@@ -29,7 +29,7 @@ describe Commander::AutomationServer do
   it "serves one JSON automation command per local Unix socket client" do
     path = temp_socket_path("valid")
     server = Commander::AutomationServer.new(path)
-    server.start do |command|
+    server.start(-> { automation_server_snapshot }) do |command|
       Commander::AutomationResponse.new(
         ok: true,
         status_text: "ran #{command.command_id}",
@@ -52,7 +52,7 @@ describe Commander::AutomationServer do
   it "returns structured JSON errors for malformed requests" do
     path = temp_socket_path("malformed")
     server = Commander::AutomationServer.new(path)
-    server.start do |command|
+    server.start(-> { automation_server_snapshot }) do |command|
       Commander::AutomationResponse.new(true, "unexpected", automation_server_snapshot)
     end
 
@@ -73,7 +73,7 @@ describe Commander::AutomationServer do
     path = temp_socket_path("policy-block")
     server = Commander::AutomationServer.new(path)
     executed = false
-    server.start do |command|
+    server.start(-> { automation_server_snapshot }) do |command|
       executed = true
       Commander::AutomationResponse.new(true, command.command_id, automation_server_snapshot)
     end
@@ -94,7 +94,7 @@ describe Commander::AutomationServer do
   it "allows mutating IPC commands when dry-run is requested" do
     path = temp_socket_path("policy-dry-run")
     server = Commander::AutomationServer.new(path)
-    server.start do |command|
+    server.start(-> { automation_server_snapshot }) do |command|
       Commander::AutomationResponse.new(
         ok: true,
         status_text: "dry-run #{command.command_id}",
@@ -127,6 +127,67 @@ describe Commander::AutomationServer do
 
     File.read(path).should eq("not a socket")
   ensure
+    server.try(&.stop) rescue nil
+    File.delete(path) if path && File.exists?(path)
+  end
+
+  it "serves structured command request envelopes" do
+    path = temp_socket_path("request-command")
+    server = Commander::AutomationServer.new(path)
+    server.start(-> { automation_server_snapshot }) do |command|
+      Commander::AutomationResponse.new(true, "envelope #{command.command_id}", automation_server_snapshot)
+    end
+
+    client = UNIXSocket.new(path)
+    client.puts(%({"kind":"command","command":{"command_id":"app.help"}}))
+    response = JSON.parse(client.gets.not_nil!)
+
+    response["ok"].as_bool.should be_true
+    response["status_text"].as_s.should eq("envelope app.help")
+  ensure
+    client.try(&.close) rescue nil
+    server.try(&.stop) rescue nil
+    File.delete(path) if path && File.exists?(path)
+  end
+
+  it "serves read-only snapshot requests without executing commands" do
+    path = temp_socket_path("snapshot")
+    server = Commander::AutomationServer.new(path)
+    executed = false
+    server.start(-> { automation_server_snapshot }) do |command|
+      executed = true
+      Commander::AutomationResponse.new(true, command.command_id, automation_server_snapshot)
+    end
+
+    client = UNIXSocket.new(path)
+    client.puts(%({"kind":"snapshot"}))
+    response = JSON.parse(client.gets.not_nil!)
+
+    response["ok"].as_bool.should be_true
+    response["status_text"].as_s.should eq("Ready")
+    response["snapshot"]["status_text"].as_s.should eq("Ready")
+    executed.should be_false
+  ensure
+    client.try(&.close) rescue nil
+    server.try(&.stop) rescue nil
+    File.delete(path) if path && File.exists?(path)
+  end
+
+  it "rejects unknown structured request kinds" do
+    path = temp_socket_path("unknown-kind")
+    server = Commander::AutomationServer.new(path)
+    server.start(-> { automation_server_snapshot }) do |command|
+      Commander::AutomationResponse.new(true, command.command_id, automation_server_snapshot)
+    end
+
+    client = UNIXSocket.new(path)
+    client.puts(%({"kind":"mystery"}))
+    response = JSON.parse(client.gets.not_nil!)
+
+    response["ok"].as_bool.should be_false
+    response["error"].as_s.should contain("unknown automation request kind")
+  ensure
+    client.try(&.close) rescue nil
     server.try(&.stop) rescue nil
     File.delete(path) if path && File.exists?(path)
   end

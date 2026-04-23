@@ -29,25 +29,34 @@ except FileNotFoundError:
 
 server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 server.bind(socket_path)
-server.listen(1)
+server.listen(2)
 with open(log_path, "w", encoding="utf-8") as log:
     log.write("ready\n")
     log.flush()
-    conn, _ = server.accept()
-    with conn:
-        data = b""
-        while not data.endswith(b"\n"):
-            chunk = conn.recv(4096)
-            if not chunk:
-                break
-            data += chunk
-        payload = json.loads(data.decode("utf-8"))
-        response = {
-            "ok": True,
-            "status_text": "ipc " + payload["command_id"],
-            "error": None,
-        }
-        conn.sendall((json.dumps(response) + "\n").encode("utf-8"))
+    for _ in range(2):
+        conn, _ = server.accept()
+        with conn:
+            data = b""
+            while not data.endswith(b"\n"):
+                chunk = conn.recv(4096)
+                if not chunk:
+                    break
+                data += chunk
+            payload = json.loads(data.decode("utf-8"))
+            if payload.get("kind") in ("snapshot", "status"):
+                response = {
+                    "ok": True,
+                    "status_text": "fixture ready",
+                    "error": None,
+                    "snapshot": {"status_text": "fixture ready"},
+                }
+            else:
+                response = {
+                    "ok": True,
+                    "status_text": "ipc " + payload["command_id"],
+                    "error": None,
+                }
+            conn.sendall((json.dumps(response) + "\n").encode("utf-8"))
 server.close()
 PY
 server_pid=$!
@@ -59,3 +68,7 @@ done
 json='{"command_id":"app.help"}'
 response="$(sh "$repo_dir/scripts/commanderctl" ipc-command-json "$socket_path" "$json")"
 printf '%s\n' "$response" | python3 -c 'import json,sys; data=json.load(sys.stdin); assert data["ok"] is True, data; assert data["status_text"] == "ipc app.help", data; print(data["status_text"])'
+
+status="$(sh "$repo_dir/scripts/commanderctl" ipc-status "$socket_path")"
+test "$status" = "fixture ready"
+printf '%s\n' "$status"

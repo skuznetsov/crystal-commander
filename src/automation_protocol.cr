@@ -47,6 +47,28 @@ module Commander
     end
   end
 
+  struct AutomationRequest
+    include JSON::Serializable
+
+    getter kind : String = "command"
+    getter command : AutomationCommand?
+
+    def initialize(@kind : String = "command", @command : AutomationCommand? = nil)
+    end
+
+    def self.command(command : AutomationCommand) : AutomationRequest
+      new("command", command)
+    end
+
+    def self.snapshot : AutomationRequest
+      new("snapshot")
+    end
+
+    def self.status : AutomationRequest
+      new("status")
+    end
+  end
+
   struct AutomationResponse
     include JSON::Serializable
 
@@ -56,6 +78,10 @@ module Commander
     getter snapshot : AppSnapshot
 
     def initialize(@ok : Bool, @status_text : String, @snapshot : AppSnapshot, @error : String? = nil)
+    end
+
+    def self.snapshot(snapshot : AppSnapshot) : AutomationResponse
+      new(true, snapshot.status_text, snapshot)
     end
 
     def self.error(message : String, snapshot : AppSnapshot? = nil) : AutomationResponse

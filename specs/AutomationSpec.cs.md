@@ -50,10 +50,18 @@ Automation makes Commander observable and controllable for debugging, smoke test
 - Phase 2: Crystal debug snapshot structs and JSON serialization.
 - Phase 3: local read-only state/command/status/plugin/runtime dump (`COMMANDER_DUMP_STATE=1`, `scripts/commanderctl state`, `scripts/commanderctl commands`, `scripts/commanderctl status`, `scripts/commanderctl plugin-list`, `scripts/commanderctl runtime-list`).
 - Phase 4: JSON automation command/response structs.
-- Phase 5: stateful local IPC for `commanderctl command <id>` against a running app.
+- Phase 5: stateful local IPC for read-only state/status requests and `commanderctl command <id>` against a running app.
 - Phase 6: `.app` bundle plus AppleScript `.sdef` mapped onto the same command/state API.
 
 ## JSON Protocol Draft
+
+Structured request envelope:
+
+```json
+{
+  "kind": "snapshot"
+}
+```
 
 Single command:
 
@@ -87,6 +95,8 @@ Responses include `ok`, `status_text`, and a full `AppSnapshot`.
 - Headless JSON automation command execution MUST use `AutomationCommand` and return `AutomationResponse`.
 - Headless JSON automation command sequence execution MUST use `Array(AutomationCommand)` and preserve state between commands in the same process.
 - Omitted optional automation command fields MUST default to `panel_index=0`, `argument=nil`, and `dry_run=false`.
+- Stateful IPC SHOULD accept structured `AutomationRequest` envelopes for read-only `snapshot`/`status` requests and command requests.
+- Stateful IPC SHOULD preserve compatibility with legacy raw `AutomationCommand` JSON requests.
 - Malformed or schema-invalid JSON automation commands MUST return structured error responses rather than raw stack traces.
 - Automation responses SHOULD set `ok=false` when command dispatch fails.
 - Headless state/command modes MUST NOT create AppKit windows or require renderer lifecycle.
@@ -115,8 +125,11 @@ Responses include `ok`, `status_text`, and a full `AppSnapshot`.
 - Verify `scripts/commanderctl command-seq-json-file FILE` routes through `Array(AutomationCommand)`.
 - Verify `scripts/commanderctl ipc-command-json SOCKET JSON` sends one newline-delimited automation command to a running socket.
 - Verify `scripts/commanderctl ipc-command-json-file SOCKET FILE` sends one newline-delimited automation command loaded from a file.
+- Verify `scripts/commanderctl ipc-state SOCKET` sends a read-only snapshot request to a running socket.
+- Verify `scripts/commanderctl ipc-status SOCKET` sends a read-only status request to a running socket.
 - Verify `COMMANDER_AUTOMATION_COMMANDS_JSON` executes an array of commands in one process and preserves pending state between them.
 - Verify `AutomationServer` accepts one newline-delimited JSON `AutomationCommand` per local Unix socket client.
+- Verify `AutomationServer` accepts structured `AutomationRequest` envelopes.
 - Verify malformed IPC JSON returns a structured error envelope.
 - Verify IPC socket startup refuses to overwrite an existing filesystem path.
 - Verify mutating IPC commands are rejected unless `dry_run=true`.

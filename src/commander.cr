@@ -386,7 +386,7 @@ class CommanderApp
     set_active_panel(0)
     report_plugin_manifest_status
     @automation_server.try do |server|
-      server.start { |command| handle_automation_command(command) }
+      server.start(-> { debug_snapshot }) { |command| handle_automation_command(command) }
     end
 
     while @running && renderer.pump(16)
