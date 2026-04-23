@@ -2,13 +2,19 @@
 
 The SDK is the stable Crystal-facing facade for automation, plugins, VFS access, and backend-neutral UI rendering.
 
-The current entrypoint is:
+The shard-style entrypoint is:
+
+```crystal
+require "commander/sdk"
+```
+
+Inside this repository, tests may also use:
 
 ```crystal
 require "./src/sdk"
 ```
 
-External shards should eventually depend on a packaged shard entrypoint. For now, this facade keeps callers away from internal file layout and avoids importing `CommanderApp` or opening an AppKit window.
+The facade keeps callers away from internal file layout and avoids importing `CommanderApp` or opening an AppKit window.
 
 ## Surfaces
 
@@ -74,7 +80,7 @@ AppKit and terminal backends should consume draw/event primitives. They must not
 
 ## Current limitations
 
-- The SDK is source-level only; it is not packaged as a shard yet.
+- The SDK has a shard-style source entrypoint, but no release/package workflow yet.
 - The AppKit renderer still consumes specialized C ABI calls for panels/status/tab bar instead of rendering the full `DrawFrame`.
 - `TerminalGridBackend` is deterministic test infrastructure, not an interactive TTY backend.
 - SSH/SFTP/S3 providers are fail-closed skeletons.

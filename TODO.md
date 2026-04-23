@@ -319,6 +319,7 @@ Risk: SAFE
 Definition of Done:
 
 - `src/sdk.cr` provides a stable Crystal import path
+- `src/commander/sdk.cr` provides a shard-style `require "commander/sdk"` entrypoint
 - SDK exposes automation command helpers without opening AppKit
 - SDK exposes plugin host construction without executing plugin code
 - SDK exposes VFS URI parsing and default registry construction
@@ -330,14 +331,16 @@ Definition of Done:
 Evidence:
 
 - Added `Commander::SDK` facade in `src/sdk.cr`
+- Added `src/commander/sdk.cr` shard-style SDK entrypoint
 - Added automation helpers for command construction and JSON parsing
 - Added plugin, VFS, workspace rendering, recording backend, and terminal-grid backend helpers
 - Added `docs/SDK.md` with examples, limitations, and stability rules
 - Added `spec/sdk_spec.cr` proving the SDK facade is importable and covers automation, VFS, plugin registry, and UI rendering helpers without launching GUI
+- Verified SDK spec through both repository-local and shard-style import paths
 - Validation: `crystal spec` passed with 77 examples; `sh scripts/spec_check` passed; `make commander` passed; `scripts/tabs_smoke` passed; `scripts/vfs_smoke` passed
 
 Remaining:
 
-- SDK is source-level only, not packaged as a shard yet
+- SDK has a shard-style source entrypoint, but no release/package workflow yet
 - Lua API reference is still documented separately in README/specs
 - SDK versioning policy is minimal (`Commander::SDK::VERSION`) and not tied to releases yet

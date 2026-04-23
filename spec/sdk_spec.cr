@@ -1,5 +1,6 @@
 require "spec"
 require "../src/sdk"
+require "../src/commander/sdk"
 
 private def sdk_snapshot : Commander::AppSnapshot
   entry = Commander::EntrySnapshot.new(
