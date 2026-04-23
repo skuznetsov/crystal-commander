@@ -2,6 +2,11 @@ name: commander
 version: 0.1.0
 crystal: ">= 1.13.0"
 license: MIT
+description: Native Commander-style file manager and backend-neutral UI SDK for Crystal.
 
 authors:
   - Sergey
+
+targets:
+  commander-sdk-info:
+    main: src/commander/sdk_info.cr

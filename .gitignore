@@ -1,6 +1,7 @@
 # Build artifacts
 /commander
 /commander.dwarf
+/bin/
 /dist/
 /src/*.o
 

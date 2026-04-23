@@ -80,7 +80,8 @@ AppKit and terminal backends should consume draw/event primitives. They must not
 
 ## Current limitations
 
-- The SDK has a shard-style source entrypoint, but no release/package workflow yet.
+- The SDK has a shard-style source entrypoint and shard metadata, but no release workflow yet.
+- The macOS app executable is built by Makefile because it needs Objective-C++ object files and AppKit/Cocoa link flags.
 - The AppKit renderer still consumes specialized C ABI calls for panels/status/tab bar instead of rendering the full `DrawFrame`.
 - `TerminalGridBackend` is deterministic test infrastructure, not an interactive TTY backend.
 - SSH/SFTP/S3 providers are fail-closed skeletons.
@@ -89,3 +90,21 @@ AppKit and terminal backends should consume draw/event primitives. They must not
 ## Stability rule
 
 Prefer adding stable methods to `Commander::SDK` over exposing more internal files. If an API needs to change, update this document, the relevant CodeSpeak spec, and SDK specs in the same commit.
+
+## Shard metadata
+
+The SDK import path is source-only and does not create a window:
+
+```crystal
+require "commander/sdk"
+```
+
+The shard build target is SDK-only:
+
+```yaml
+targets:
+  commander-sdk-info:
+    main: src/commander/sdk_info.cr
+```
+
+It does not import `CommanderApp` or create an AppKit window. The macOS app executable target is intentionally not declared in `shard.yml` yet. Use `make commander` or `./run_mac.sh` so the native renderer objects and framework link flags are included.

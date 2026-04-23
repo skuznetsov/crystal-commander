@@ -82,8 +82,8 @@ Trust: `{F:0.8,G:0.6,R:0.8}` `crystal spec` passed with 73 examples, `sh scripts
 
 ## LM-11: Commander SDK facade exists
 
-Commander has a stable source-level SDK facade at `src/sdk.cr` plus a shard-style entrypoint at `src/commander/sdk.cr` for `require "commander/sdk"`. It exposes automation command helpers, command registry construction, metadata-only plugin host construction, VFS URI/default-registry helpers, workspace projection, backend-neutral workspace rendering, recording backend construction, and terminal-grid backend construction without importing `CommanderApp` or opening AppKit.
+Commander has a stable source-level SDK facade at `src/sdk.cr`, a shard-style entrypoint at `src/commander/sdk.cr` for `require "commander/sdk"`, and an SDK-only shard target at `src/commander/sdk_info.cr`. The macOS executable build remains Makefile-owned because it needs Objective-C++ object files and AppKit/Cocoa link flags. The SDK exposes automation command helpers, command registry construction, metadata-only plugin host construction, VFS URI/default-registry helpers, workspace projection, backend-neutral workspace rendering, recording backend construction, and terminal-grid backend construction without importing `CommanderApp` or opening AppKit.
 
-Evidence: `src/sdk.cr`, `src/commander/sdk.cr`, `spec/sdk_spec.cr`, `docs/SDK.md`.
+Evidence: `src/sdk.cr`, `src/commander/sdk.cr`, `src/commander/sdk_info.cr`, `spec/sdk_spec.cr`, `docs/SDK.md`, `shard.yml`.
 
-Trust: `{F:0.8,G:0.6,R:0.8}` `crystal spec` passed with 77 examples, `sh scripts/spec_check` passed, `make commander` passed, `scripts/tabs_smoke` passed, `scripts/vfs_smoke` passed, and SDK specs verified automation, VFS, plugin registry, UI rendering helpers, and both repository-local plus shard-style SDK import paths.
+Trust: `{F:0.8,G:0.6,R:0.8}` `shards build` passed for the SDK-only target, `crystal spec` passed with 77 examples, `sh scripts/spec_check` passed, `make commander` passed, `scripts/tabs_smoke` passed, `scripts/vfs_smoke` passed, and SDK specs verified automation, VFS, plugin registry, UI rendering helpers, and both repository-local plus shard-style SDK import paths.

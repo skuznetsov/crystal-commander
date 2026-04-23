@@ -32,6 +32,18 @@ Native macOS version of a Midnight Commander-style file manager:
 - `src/file_preview.cr` — read-only bounded text preview for `file.view`.
 - `src/commander.cr` — example of full control logic from Crystal, without native file-control logic inside `.mm`.
 
+## SDK entrypoint
+
+Crystal callers can import the SDK without launching the AppKit application:
+
+```crystal
+require "commander/sdk"
+```
+
+See `docs/SDK.md` for automation, plugin, VFS, and backend-neutral UI examples.
+
+The macOS application target uses Objective-C++ object files and framework link flags, so build the app through `make commander` or `./run_mac.sh` rather than `shards build`.
+
 ## Grok Delegation
 
 - `scripts/grok_acp_delegate.py` — minimal ACP client for delegating tasks to Grok.
