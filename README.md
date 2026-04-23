@@ -27,6 +27,7 @@ Native macOS version of a Midnight Commander-style file manager:
 - `src/plugin_manifest.cr` — JSON manifest model for future Lua/subprocess plugins.
 - `src/plugin_host.cr` — plugin manifest discovery and command registration.
 - `src/plugin_runtime.cr` — plugin runtime interface, Lua subprocess runtime, and disabled subprocess runtime stub.
+- `src/sdk.cr` — stable Crystal-facing facade for automation, plugins, VFS, and backend-neutral UI rendering.
 - `src/file_operations.cr` — safe file operation planning structs; execution is not implemented yet.
 - `src/file_preview.cr` — read-only bounded text preview for `file.view`.
 - `src/commander.cr` — example of full control logic from Crystal, without native file-control logic inside `.mm`.
@@ -51,6 +52,7 @@ Architectural contracts live in `specs/*Spec.cs.md`:
 - `specs/AutomationSpec.cs.md` — AppleScript/Accessibility/debug automation contracts.
 - `specs/CrystalGuiApiSpec.cs.md` — future backend-neutral Crystal TUI/GUI API.
 - `specs/TabsSpec.cs.md` — top-level workspace tabs in addition to multiple panels per tab.
+- `docs/SDK.md` — current SDK facade, examples, and stability rules.
 
 Before changing sensitive areas, compare the patch with the relevant spec. If code and spec diverge, the patch must either preserve the documented intent or explicitly update the spec.
 

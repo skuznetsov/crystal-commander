@@ -79,3 +79,11 @@ Commander has a Crystal-owned UI API with backend-neutral events, draw commands,
 Evidence: `src/ui_api.cr`, `spec/ui_api_spec.cr`, `specs/CrystalGuiApiSpec.cs.md`.
 
 Trust: `{F:0.8,G:0.6,R:0.8}` `crystal spec` passed with 73 examples, `sh scripts/spec_check` passed, `make commander` passed, `scripts/tabs_smoke` passed, `scripts/vfs_smoke` passed, and UI specs verified two backend stubs receive identical draw command streams, a retained workspace widget tree with tabs, split panels, list rows, selection styles, and terminal-grid rendering of the same `DrawFrame`.
+
+## LM-11: Commander SDK facade exists
+
+Commander has a stable source-level SDK facade at `src/sdk.cr`. It exposes automation command helpers, command registry construction, metadata-only plugin host construction, VFS URI/default-registry helpers, workspace projection, backend-neutral workspace rendering, recording backend construction, and terminal-grid backend construction without importing `CommanderApp` or opening AppKit.
+
+Evidence: `src/sdk.cr`, `spec/sdk_spec.cr`, `docs/SDK.md`.
+
+Trust: `{F:0.8,G:0.5,R:0.8}` `crystal spec` passed with 77 examples, `sh scripts/spec_check` passed, `make commander` passed, `scripts/tabs_smoke` passed, `scripts/vfs_smoke` passed, and SDK specs verified automation, VFS, plugin registry, and UI rendering helpers through the SDK facade.

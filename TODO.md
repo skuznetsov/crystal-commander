@@ -309,3 +309,35 @@ Remaining:
 
 - Real SSH/SFTP/S3 providers remain future work behind explicit auth/credential boundaries
 - `open_stream` intentionally returns `UnsupportedOperation` until stream ownership is specified
+
+## 12. Extract public SDK facade
+
+Status: PARTIAL
+
+Risk: SAFE
+
+Definition of Done:
+
+- `src/sdk.cr` provides a stable Crystal import path
+- SDK exposes automation command helpers without opening AppKit
+- SDK exposes plugin host construction without executing plugin code
+- SDK exposes VFS URI parsing and default registry construction
+- SDK exposes backend-neutral workspace/render/backend helpers
+- SDK docs describe current surfaces and limitations in English
+- Check: `crystal spec spec/sdk_spec.cr` passes
+- Check: `crystal spec`, `sh scripts/spec_check`, and `make commander` pass
+
+Evidence:
+
+- Added `Commander::SDK` facade in `src/sdk.cr`
+- Added automation helpers for command construction and JSON parsing
+- Added plugin, VFS, workspace rendering, recording backend, and terminal-grid backend helpers
+- Added `docs/SDK.md` with examples, limitations, and stability rules
+- Added `spec/sdk_spec.cr` proving the SDK facade is importable and covers automation, VFS, plugin registry, and UI rendering helpers without launching GUI
+- Validation: `crystal spec` passed with 77 examples; `sh scripts/spec_check` passed; `make commander` passed; `scripts/tabs_smoke` passed; `scripts/vfs_smoke` passed
+
+Remaining:
+
+- SDK is source-level only, not packaged as a shard yet
+- Lua API reference is still documented separately in README/specs
+- SDK versioning policy is minimal (`Commander::SDK::VERSION`) and not tied to releases yet
