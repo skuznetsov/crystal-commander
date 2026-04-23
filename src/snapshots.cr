@@ -171,6 +171,27 @@ module Commander
     end
   end
 
+  struct ViewerConfigSnapshot
+    include JSON::Serializable
+
+    getter external_viewer : String?
+    getter external_editor : String?
+    getter max_buffer_size : Int64
+    getter tab_width : Int32
+    getter show_line_numbers : Bool
+    getter word_wrap : Bool
+
+    def initialize(
+      @external_viewer : String? = nil,
+      @external_editor : String? = nil,
+      @max_buffer_size : Int64 = 32768_i64,
+      @tab_width : Int32 = 4,
+      @show_line_numbers : Bool = false,
+      @word_wrap : Bool = false
+    )
+    end
+  end
+
   struct PluginSnapshot
     include JSON::Serializable
 
@@ -255,6 +276,7 @@ module Commander
     getter pending_operation : OperationPlanSnapshot?
     getter preview : PreviewSnapshot?
     getter external_view : ExternalViewSnapshot?
+    getter viewer_config : ViewerConfigSnapshot
     getter viewer_sessions : Array(ViewerSessionSnapshot)
     getter panels : Array(PanelSnapshot)
     getter active_tab : Int32
@@ -275,6 +297,7 @@ module Commander
       @preview : PreviewSnapshot?,
       @external_view : ExternalViewSnapshot?,
       @panels : Array(PanelSnapshot),
+      @viewer_config : ViewerConfigSnapshot = ViewerConfigSnapshot.new,
       @viewer_sessions : Array(ViewerSessionSnapshot) = [] of ViewerSessionSnapshot,
       @plugin_actions : Array(PluginActionSnapshot) = [] of PluginActionSnapshot,
       @active_tab : Int32 = 0,

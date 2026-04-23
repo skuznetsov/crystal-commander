@@ -309,11 +309,14 @@ describe Commander::UI do
       pending_operation: nil,
       preview: nil,
       external_view: nil,
+      viewer_config: Commander::ViewerConfigSnapshot.new(max_buffer_size: 2048_i64, tab_width: 8),
       viewer_sessions: [session],
       panels: [] of Commander::PanelSnapshot
     )
 
     view = Commander::UI.workspace(snapshot)
+    view.viewer_config.max_buffer_size.should eq(2048)
+    view.viewer_config.tab_width.should eq(8)
     view.viewer_sessions.size.should eq(1)
     view.viewer_sessions.first.id.should eq("viewer-1")
     view.viewer_sessions.first.scroll_offset.should eq(3)

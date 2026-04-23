@@ -133,6 +133,7 @@ Open the application and the window appears as a normal macOS window.
 - `COMMANDER_AUTOMATION_SOCKET=<path>` — create a local Unix socket listener for stateful JSON automation while the app is running; mutating IPC commands require `dry_run=true`.
 - `COMMANDER_ENABLE_LUA_PLUGINS=1` — enable Lua plugin command execution through an external `lua`, `lua5.4`, or `luajit` binary.
 - `COMMANDER_ENABLE_SUBPROCESS_PLUGINS=1` — reserved gate for future subprocess plugin execution; runtime still stubbed.
+- `COMMANDER_VIEWER_MAX_BYTES`, `COMMANDER_VIEWER_TAB_WIDTH`, `COMMANDER_EXTERNAL_VIEWER`, `COMMANDER_EXTERNAL_EDITOR` — configure bounded viewer/editor metadata exposed in snapshots.
 
 Read-only state through the wrapper:
 

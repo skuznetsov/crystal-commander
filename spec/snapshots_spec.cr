@@ -36,6 +36,25 @@ describe "Commander snapshots" do
     searched.cursor_col.should eq(2)
   end
 
+  it "ViewerConfigSnapshot roundtrips JSON" do
+    config = Commander::ViewerConfigSnapshot.new(
+      external_viewer: "open",
+      external_editor: "vim",
+      max_buffer_size: 1024_i64,
+      tab_width: 2,
+      show_line_numbers: true,
+      word_wrap: true
+    )
+    parsed = Commander::ViewerConfigSnapshot.from_json(config.to_json)
+
+    parsed.external_viewer.should eq("open")
+    parsed.external_editor.should eq("vim")
+    parsed.max_buffer_size.should eq(1024)
+    parsed.tab_width.should eq(2)
+    parsed.show_line_numbers.should be_true
+    parsed.word_wrap.should be_true
+  end
+
   it "OperationPlanSnapshot summary via kind" do
     plan = Commander::OperationPlanSnapshot.new("Copy", 0, nil, ["a"], "tgt", "Copy 1 item(s) to tgt")
     plan.kind.should eq("Copy")

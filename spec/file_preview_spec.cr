@@ -28,6 +28,15 @@ describe Commander::FilePreview do
     end
   end
 
+  it "uses caller-provided max buffer size" do
+    with_tempfile("custom-limit.txt", "abcdef") do |path|
+      snap = Commander::FilePreview.load(path, max_bytes: 3)
+
+      snap.truncated.should be_true
+      snap.content.should eq("abc")
+    end
+  end
+
   it "rejects binary files containing NUL" do
     binary = "text\0more"
     with_tempfile("bin", binary) do |path|

@@ -548,6 +548,7 @@ module Commander
       getter status_text : String
       getter panels : Array(FilePanelView)
       getter tabs : Array(TabView)
+      getter viewer_config : ViewerConfigSnapshot
       getter viewer_sessions : Array(ViewerSessionView)
       getter command_ids : Array(String)
       getter external_view : ExternalViewRequest?
@@ -558,6 +559,7 @@ module Commander
         @status_text = snapshot.status_text
         @panels = snapshot.panels.map { |panel| FilePanelView.new(panel) }
         @tabs = snapshot.tabs.map { |tab| TabView.new(tab) }
+        @viewer_config = snapshot.viewer_config
         @viewer_sessions = snapshot.viewer_sessions.map { |session| ViewerSessionView.new(session) }
         @command_ids = snapshot.commands.map(&.id)
         @external_view = snapshot.external_view.try { |view| ExternalViewRequest.from_snapshot(view) }

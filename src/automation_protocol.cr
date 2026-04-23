@@ -113,6 +113,7 @@ module Commander
         pending_operation: nil,
         preview: nil,
         external_view: nil,
+        viewer_config: ViewerConfigSnapshot.new,
         viewer_sessions: [] of ViewerSessionSnapshot,
         panels: [] of PanelSnapshot
       )

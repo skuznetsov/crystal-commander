@@ -267,13 +267,17 @@ Evidence:
 
 - Added `ViewerSessionSnapshot` for read-only viewer state outside `PanelState`.
 - `AppSnapshot.viewer_sessions` exposes active viewer sessions for automation/debug layers.
+- `AppSnapshot.viewer_config` exposes external viewer/editor, max buffer size, tab width, line-number, and word-wrap settings.
 - Backend-neutral `UI::WorkspaceView.viewer_sessions` projects viewer-session metadata for future renderer widgets.
+- Backend-neutral `UI::WorkspaceView.viewer_config` projects viewer configuration for future renderer widgets.
+- `COMMANDER_VIEWER_MAX_BYTES`, `COMMANDER_VIEWER_TAB_WIDTH`, `COMMANDER_EXTERNAL_VIEWER`, and `COMMANDER_EXTERNAL_EDITOR` configure viewer metadata from the environment.
+- `FilePreview.load` now accepts a caller-provided max buffer size, and `file.view_path` uses `ViewerConfig.preview_max_bytes`.
 - `file.view` and `file.view_path` create read-only text viewer sessions for successfully loaded text previews.
 - Added `viewer.close`, `viewer.scroll`, and `viewer.search` command IDs.
 - Headless command sequence verified `file.view_path` + `viewer.search` + `viewer.scroll` updates `viewer_sessions[0].search_term`, `cursor_line`, and `scroll_offset`.
 - Headless command sequence verified `viewer.close` removes the active viewer session.
 - `sh scripts/commanderctl commands` lists `file.view`, `file.view_path`, `viewer.close`, `viewer.scroll`, and `viewer.search`.
-- Validation: targeted UI/SDK specs passed with 13 examples; `crystal spec` passed with 98 examples; `sh scripts/spec_check` passed; `shards build` passed; `make commander` passed; `scripts/tabs_smoke`, `scripts/vfs_smoke`, and `scripts/ipc_smoke` passed.
+- Validation: targeted viewer/config/snapshot/UI specs passed with 21 examples; `crystal spec` passed with 102 examples; `sh scripts/spec_check` passed; `shards build` passed; `make commander` passed; `commanderctl state` verified env-derived viewer config; `file.view_path` verified config-driven preview truncation; `scripts/tabs_smoke`, `scripts/vfs_smoke`, and `scripts/ipc_smoke` passed.
 
 Remaining:
 

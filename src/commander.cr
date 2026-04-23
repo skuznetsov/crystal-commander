@@ -9,6 +9,7 @@ require "./file_preview"
 require "./panel_state"
 require "./ui_api"
 require "./automation_server"
+require "./viewer_config"
 require "./virtual_fs"
 
 
@@ -50,6 +51,7 @@ class CommanderApp
   @pending_operation : Commander::FileOperationPlan?
   @preview : Commander::PreviewSnapshot?
   @external_view : Commander::ExternalViewSnapshot?
+  @viewer_config : Commander::ViewerConfig
   @viewer_sessions : Array(Commander::ViewerSessionSnapshot)
   @next_viewer_session_id : Int32
   @plugin_actions : Array(Commander::PluginActionSnapshot)
@@ -75,6 +77,7 @@ class CommanderApp
     @pending_operation = nil
     @preview = nil
     @external_view = nil
+    @viewer_config = Commander::ViewerConfig.from_env
     @viewer_sessions = [] of Commander::ViewerSessionSnapshot
     @next_viewer_session_id = 0
     @plugin_actions = [] of Commander::PluginActionSnapshot
@@ -878,7 +881,7 @@ class CommanderApp
   end
 
   private def view_path(path : String, panel_index : Int32? = nil) : Nil
-    preview = Commander::FilePreview.load(path)
+    preview = Commander::FilePreview.load(path, @viewer_config.preview_max_bytes)
     @preview = preview
     if preview.error
       update_status("View failed: #{preview.error}")
@@ -1172,6 +1175,7 @@ class CommanderApp
       pending_operation: @pending_operation.try(&.to_snapshot),
       preview: @preview,
       external_view: @external_view,
+      viewer_config: @viewer_config.to_snapshot,
       viewer_sessions: @viewer_sessions,
       panels: panels,
       plugin_actions: @plugin_actions,
