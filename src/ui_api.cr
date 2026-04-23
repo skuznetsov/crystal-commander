@@ -492,6 +492,38 @@ module Commander
       end
     end
 
+    struct ViewerSessionView
+      getter id : String
+      getter panel_index : Int32?
+      getter path : String
+      getter title : String
+      getter mode : String
+      getter scroll_offset : Int32
+      getter cursor_line : Int32
+      getter cursor_col : Int32
+      getter search_term : String?
+      getter dirty : Bool
+      getter readonly : Bool
+      getter truncated : Bool
+      getter error : String?
+
+      def initialize(snapshot : ViewerSessionSnapshot)
+        @id = snapshot.id
+        @panel_index = snapshot.panel_index
+        @path = snapshot.path
+        @title = snapshot.title
+        @mode = snapshot.mode
+        @scroll_offset = snapshot.scroll_offset
+        @cursor_line = snapshot.cursor_line
+        @cursor_col = snapshot.cursor_col
+        @search_term = snapshot.search_term
+        @dirty = snapshot.dirty
+        @readonly = snapshot.readonly
+        @truncated = snapshot.truncated
+        @error = snapshot.error
+      end
+    end
+
     struct TabView
       getter index : Int32
       getter title : String
@@ -516,6 +548,7 @@ module Commander
       getter status_text : String
       getter panels : Array(FilePanelView)
       getter tabs : Array(TabView)
+      getter viewer_sessions : Array(ViewerSessionView)
       getter command_ids : Array(String)
       getter external_view : ExternalViewRequest?
 
@@ -525,6 +558,7 @@ module Commander
         @status_text = snapshot.status_text
         @panels = snapshot.panels.map { |panel| FilePanelView.new(panel) }
         @tabs = snapshot.tabs.map { |tab| TabView.new(tab) }
+        @viewer_sessions = snapshot.viewer_sessions.map { |session| ViewerSessionView.new(session) }
         @command_ids = snapshot.commands.map(&.id)
         @external_view = snapshot.external_view.try { |view| ExternalViewRequest.from_snapshot(view) }
       end

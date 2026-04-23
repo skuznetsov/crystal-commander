@@ -284,4 +284,40 @@ describe Commander::UI do
     view.external_view.not_nil!.path.should eq("/tmp/README.md")
     view.external_view.not_nil!.readonly.should be_true
   end
+
+  it "projects viewer sessions from app snapshots" do
+    session = Commander::ViewerSessionSnapshot.new(
+      id: "viewer-1",
+      panel_index: 0,
+      path: "/tmp/README.md",
+      title: "README.md",
+      scroll_offset: 3,
+      cursor_line: 7,
+      search_term: "needle"
+    )
+    snapshot = Commander::AppSnapshot.new(
+      active_panel: 0,
+      panel_count: 1,
+      running: true,
+      status_text: "View README.md",
+      dry_run: false,
+      plugin_root: "plugins",
+      plugins: [] of Commander::PluginSnapshot,
+      plugin_runtimes: [] of Commander::PluginRuntimeSnapshot,
+      plugin_errors: [] of String,
+      commands: [] of Commander::CommandSnapshot,
+      pending_operation: nil,
+      preview: nil,
+      external_view: nil,
+      viewer_sessions: [session],
+      panels: [] of Commander::PanelSnapshot
+    )
+
+    view = Commander::UI.workspace(snapshot)
+    view.viewer_sessions.size.should eq(1)
+    view.viewer_sessions.first.id.should eq("viewer-1")
+    view.viewer_sessions.first.scroll_offset.should eq(3)
+    view.viewer_sessions.first.cursor_line.should eq(7)
+    view.viewer_sessions.first.search_term.should eq("needle")
+  end
 end

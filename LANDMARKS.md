@@ -106,8 +106,8 @@ Trust: `{F:0.8,G:0.6,R:0.8}` targeted registry/protocol/server/snapshot specs pa
 
 ## LM-13: Read-only viewer sessions are snapshot-visible
 
-Commander has a read-only viewer session snapshot model separate from `PanelState`. `file.view` and `file.view_path` create `ViewerSessionSnapshot` entries for successfully loaded text previews, and `viewer.close`, `viewer.scroll`, and `viewer.search` mutate viewer-session state through command IDs. `AppSnapshot.viewer_sessions` makes active sessions visible to automation/debug layers. Rendering these sessions through retained UI widgets remains future work.
+Commander has a read-only viewer session snapshot model separate from `PanelState`. `file.view` and `file.view_path` create `ViewerSessionSnapshot` entries for successfully loaded text previews, and `viewer.close`, `viewer.scroll`, and `viewer.search` mutate viewer-session state through command IDs. `AppSnapshot.viewer_sessions` makes active sessions visible to automation/debug layers. `UI::WorkspaceView.viewer_sessions` projects those sessions into the backend-neutral UI API for future renderer widgets. Rendering these sessions through retained UI widgets remains future work.
 
-Evidence: `src/snapshots.cr`, `src/commander.cr`, `spec/snapshots_spec.cr`, `docs/ViewerEditorSpec.cs.md`.
+Evidence: `src/snapshots.cr`, `src/commander.cr`, `src/ui_api.cr`, `spec/snapshots_spec.cr`, `spec/ui_api_spec.cr`, `docs/ViewerEditorSpec.cs.md`.
 
-Trust: `{F:0.8,G:0.5,R:0.8}` `crystal spec` passed with 97 examples, `sh scripts/spec_check` passed, `shards build` passed, `make commander` passed, `scripts/tabs_smoke`, `scripts/vfs_smoke`, and `scripts/ipc_smoke` passed, and headless command sequences verified viewer search/scroll state plus active viewer close.
+Trust: `{F:0.8,G:0.5,R:0.8}` targeted UI/SDK specs passed with 13 examples, `crystal spec` passed with 98 examples, `sh scripts/spec_check` passed, `shards build` passed, `make commander` passed, `scripts/tabs_smoke`, `scripts/vfs_smoke`, and `scripts/ipc_smoke` passed, and headless command sequences verified viewer search/scroll state plus active viewer close.

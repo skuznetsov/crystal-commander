@@ -267,12 +267,13 @@ Evidence:
 
 - Added `ViewerSessionSnapshot` for read-only viewer state outside `PanelState`.
 - `AppSnapshot.viewer_sessions` exposes active viewer sessions for automation/debug layers.
+- Backend-neutral `UI::WorkspaceView.viewer_sessions` projects viewer-session metadata for future renderer widgets.
 - `file.view` and `file.view_path` create read-only text viewer sessions for successfully loaded text previews.
 - Added `viewer.close`, `viewer.scroll`, and `viewer.search` command IDs.
 - Headless command sequence verified `file.view_path` + `viewer.search` + `viewer.scroll` updates `viewer_sessions[0].search_term`, `cursor_line`, and `scroll_offset`.
 - Headless command sequence verified `viewer.close` removes the active viewer session.
 - `sh scripts/commanderctl commands` lists `file.view`, `file.view_path`, `viewer.close`, `viewer.scroll`, and `viewer.search`.
-- Validation: `crystal spec` passed with 97 examples; `sh scripts/spec_check` passed; `shards build` passed; `make commander` passed; `scripts/tabs_smoke`, `scripts/vfs_smoke`, and `scripts/ipc_smoke` passed.
+- Validation: targeted UI/SDK specs passed with 13 examples; `crystal spec` passed with 98 examples; `sh scripts/spec_check` passed; `shards build` passed; `make commander` passed; `scripts/tabs_smoke`, `scripts/vfs_smoke`, and `scripts/ipc_smoke` passed.
 
 Remaining:
 

@@ -79,7 +79,7 @@ The UI surface is backend-neutral:
 - `Backend`
 - retained widgets such as `ListView`, `Split`, `TabBar`, and `WorkspaceWidget`
 
-AppKit and terminal backends should consume draw/event primitives. They must not own Commander product logic.
+`Commander::SDK.workspace(snapshot)` also projects viewer-session metadata into `WorkspaceView.viewer_sessions` for future viewer widgets. AppKit and terminal backends should consume draw/event primitives. They must not own Commander product logic.
 
 ## Current limitations
 
