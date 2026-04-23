@@ -67,6 +67,7 @@ end
 - Commands: `file.view` opens viewer for selected file in active panel.
 - Viewer supports: Up/Down/PgUp/PgDn/Home/End, `/` search, `n`/`N` next/prev match, `q` close.
 - Snapshot includes `viewer_sessions` array for headless inspection.
+- Current partial implementation exposes read-only `ViewerSessionSnapshot` metadata and `viewer.close`/`viewer.scroll`/`viewer.search` command IDs; renderer widget integration remains future work.
 - Check: `COMMANDER_RUN_COMMAND file.view --path README.md` opens viewer; `COMMANDER_DUMP_STATE` shows session.
 
 ### P2 — External Viewer Delegation

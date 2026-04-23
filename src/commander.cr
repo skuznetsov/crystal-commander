@@ -50,6 +50,8 @@ class CommanderApp
   @pending_operation : Commander::FileOperationPlan?
   @preview : Commander::PreviewSnapshot?
   @external_view : Commander::ExternalViewSnapshot?
+  @viewer_sessions : Array(Commander::ViewerSessionSnapshot)
+  @next_viewer_session_id : Int32
   @plugin_actions : Array(Commander::PluginActionSnapshot)
 
   def initialize
@@ -73,6 +75,8 @@ class CommanderApp
     @pending_operation = nil
     @preview = nil
     @external_view = nil
+    @viewer_sessions = [] of Commander::ViewerSessionSnapshot
+    @next_viewer_session_id = 0
     @plugin_actions = [] of Commander::PluginActionSnapshot
     @plugin_host.load_manifests
     register_builtin_commands
@@ -346,7 +350,7 @@ class CommanderApp
     @commands.register("file.view_path", "View path", "Read-only preview of a provided file path") do |ctx|
       path = ctx.argument
       if path && !path.empty?
-        view_path(path)
+        view_path(path, ctx.panel_index)
       else
         update_status("View path requires COMMANDER_COMMAND_ARG")
       end
@@ -367,6 +371,18 @@ class CommanderApp
 
     @commands.register("file.edit", "Edit", "Edit selected file") do |ctx|
       report_file_operation_plan(Commander::FileOperationKind::Edit, ctx.panel_index)
+    end
+
+    @commands.register("viewer.close", "Close viewer", "Close the active viewer session") do |_ctx|
+      close_active_viewer
+    end
+
+    @commands.register("viewer.scroll", "Scroll viewer", "Scroll the active viewer by line count from command argument") do |ctx|
+      scroll_active_viewer(ctx.argument)
+    end
+
+    @commands.register("viewer.search", "Search viewer", "Search within the active viewer from command argument") do |ctx|
+      search_active_viewer(ctx.argument)
     end
 
     @commands.register("file.copy", "Copy", "Copy selected entries to another panel", mutating: true) do |ctx|
@@ -834,7 +850,7 @@ class CommanderApp
       return
     end
 
-    view_path(selected.path)
+    view_path(selected.path, panel_index)
   end
 
   private def external_view_selected_file(panel_index : Int32) : Nil
@@ -861,16 +877,91 @@ class CommanderApp
     update_status("External view planned: #{File.basename(expanded)}")
   end
 
-  private def view_path(path : String) : Nil
+  private def view_path(path : String, panel_index : Int32? = nil) : Nil
     preview = Commander::FilePreview.load(path)
     @preview = preview
     if preview.error
       update_status("View failed: #{preview.error}")
     else
+      open_viewer_session(preview, panel_index)
       suffix = preview.truncated ? " (truncated)" : ""
       first_line = preview.content.lines.first? || ""
       update_status("View #{preview.title}#{suffix}: #{first_line}")
     end
+  end
+
+  private def open_viewer_session(preview : Commander::PreviewSnapshot, panel_index : Int32?) : Nil
+    @next_viewer_session_id += 1
+    @viewer_sessions << Commander::ViewerSessionSnapshot.new(
+      id: "viewer-#{@next_viewer_session_id}",
+      panel_index: panel_index,
+      path: preview.path,
+      title: preview.title,
+      mode: "text",
+      scroll_offset: 0,
+      cursor_line: 0,
+      cursor_col: 0,
+      search_term: nil,
+      dirty: false,
+      readonly: true,
+      truncated: preview.truncated,
+      error: preview.error
+    )
+  end
+
+  private def close_active_viewer : Nil
+    session = @viewer_sessions.pop?
+    if session
+      update_status("Closed viewer: #{session.title}")
+    else
+      update_status("No active viewer")
+    end
+  end
+
+  private def scroll_active_viewer(argument : String?) : Nil
+    index = @viewer_sessions.size - 1
+    if index < 0
+      update_status("No active viewer")
+      return
+    end
+
+    delta = argument.try(&.to_i?) || 0
+    session = @viewer_sessions[index]
+    @viewer_sessions[index] = session.with_scroll_offset(session.scroll_offset + delta)
+    update_status("Viewer #{session.title}: scroll #{@viewer_sessions[index].scroll_offset}")
+  end
+
+  private def search_active_viewer(term : String?) : Nil
+    index = @viewer_sessions.size - 1
+    if index < 0
+      update_status("No active viewer")
+      return
+    end
+
+    search = term || ""
+    if search.empty?
+      update_status("Viewer search requires COMMANDER_COMMAND_ARG")
+      return
+    end
+
+    session = @viewer_sessions[index]
+    preview = Commander::FilePreview.load(session.path)
+    if preview.error
+      update_status("Viewer search failed: #{preview.error}")
+      return
+    end
+
+    line_index = preview.content.lines.index { |line| line.includes?(search) }
+    unless line_index
+      @viewer_sessions[index] = session.with_search(search, session.cursor_line, session.cursor_col)
+      update_status("Viewer search not found: #{search}")
+      return
+    end
+
+    line = preview.content.lines[line_index]
+    col = line.index(search).try(&.to_i32) || 0
+    @viewer_sessions[index] = session.with_search(search, line_index.to_i32, col)
+    update_status("Viewer search #{search}: line #{line_index + 1}")
   end
 
   private def go_parent(panel_index : Int32) : Nil
@@ -1081,6 +1172,7 @@ class CommanderApp
       pending_operation: @pending_operation.try(&.to_snapshot),
       preview: @preview,
       external_view: @external_view,
+      viewer_sessions: @viewer_sessions,
       panels: panels,
       plugin_actions: @plugin_actions,
       active_tab: @active_tab,

@@ -238,7 +238,7 @@ Migration phases (see `specs/TabsSpec.cs.md`):
 
 ## 9. Text viewer/editor and external viewer integration
 
-Status: TODO
+Status: PARTIAL
 
 Risk: CAUTION
 
@@ -262,6 +262,23 @@ Migration phases (see `docs/ViewerEditorSpec.cs.md`):
 - P2: External viewer delegation; `file.view_external` uses NSWorkspace / $PAGER
 - P3: Internal editor (basic); edit, undo/redo, save via mediated file ops
 - P4: External editor + completion; `file.edit_external`; optional file-watch refresh (future)
+
+Evidence:
+
+- Added `ViewerSessionSnapshot` for read-only viewer state outside `PanelState`.
+- `AppSnapshot.viewer_sessions` exposes active viewer sessions for automation/debug layers.
+- `file.view` and `file.view_path` create read-only text viewer sessions for successfully loaded text previews.
+- Added `viewer.close`, `viewer.scroll`, and `viewer.search` command IDs.
+- Headless command sequence verified `file.view_path` + `viewer.search` + `viewer.scroll` updates `viewer_sessions[0].search_term`, `cursor_line`, and `scroll_offset`.
+- Headless command sequence verified `viewer.close` removes the active viewer session.
+- `sh scripts/commanderctl commands` lists `file.view`, `file.view_path`, `viewer.close`, `viewer.scroll`, and `viewer.search`.
+- Validation: `crystal spec` passed with 97 examples; `sh scripts/spec_check` passed; `shards build` passed; `make commander` passed; `scripts/tabs_smoke`, `scripts/vfs_smoke`, and `scripts/ipc_smoke` passed.
+
+Remaining:
+
+- Viewer rendering is not yet migrated into retained `UI::Widget`/`DrawFrame`.
+- Large-file external-required policy still uses bounded preview truncation rather than delegation.
+- Internal editor, undo/redo, save, and external editor launching remain future work.
 
 ## 10. Virtual File System (SSH/SFTP/S3) integration design
 

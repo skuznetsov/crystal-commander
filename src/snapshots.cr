@@ -100,6 +100,77 @@ module Commander
     end
   end
 
+  struct ViewerSessionSnapshot
+    include JSON::Serializable
+
+    getter id : String
+    getter panel_index : Int32?
+    getter path : String
+    getter title : String
+    getter mode : String
+    getter scroll_offset : Int32
+    getter cursor_line : Int32
+    getter cursor_col : Int32
+    getter search_term : String?
+    getter dirty : Bool
+    getter readonly : Bool
+    getter truncated : Bool
+    getter error : String?
+
+    def initialize(
+      @id : String,
+      @panel_index : Int32?,
+      @path : String,
+      @title : String,
+      @mode : String = "text",
+      @scroll_offset : Int32 = 0,
+      @cursor_line : Int32 = 0,
+      @cursor_col : Int32 = 0,
+      @search_term : String? = nil,
+      @dirty : Bool = false,
+      @readonly : Bool = true,
+      @truncated : Bool = false,
+      @error : String? = nil
+    )
+    end
+
+    def with_scroll_offset(value : Int32) : ViewerSessionSnapshot
+      ViewerSessionSnapshot.new(
+        id: @id,
+        panel_index: @panel_index,
+        path: @path,
+        title: @title,
+        mode: @mode,
+        scroll_offset: value < 0 ? 0 : value,
+        cursor_line: @cursor_line,
+        cursor_col: @cursor_col,
+        search_term: @search_term,
+        dirty: @dirty,
+        readonly: @readonly,
+        truncated: @truncated,
+        error: @error
+      )
+    end
+
+    def with_search(term : String?, line : Int32, col : Int32 = 0) : ViewerSessionSnapshot
+      ViewerSessionSnapshot.new(
+        id: @id,
+        panel_index: @panel_index,
+        path: @path,
+        title: @title,
+        mode: @mode,
+        scroll_offset: @scroll_offset,
+        cursor_line: line < 0 ? 0 : line,
+        cursor_col: col < 0 ? 0 : col,
+        search_term: term,
+        dirty: @dirty,
+        readonly: @readonly,
+        truncated: @truncated,
+        error: @error
+      )
+    end
+  end
+
   struct PluginSnapshot
     include JSON::Serializable
 
@@ -184,6 +255,7 @@ module Commander
     getter pending_operation : OperationPlanSnapshot?
     getter preview : PreviewSnapshot?
     getter external_view : ExternalViewSnapshot?
+    getter viewer_sessions : Array(ViewerSessionSnapshot)
     getter panels : Array(PanelSnapshot)
     getter active_tab : Int32
     getter tabs : Array(TabSnapshot)
@@ -203,6 +275,7 @@ module Commander
       @preview : PreviewSnapshot?,
       @external_view : ExternalViewSnapshot?,
       @panels : Array(PanelSnapshot),
+      @viewer_sessions : Array(ViewerSessionSnapshot) = [] of ViewerSessionSnapshot,
       @plugin_actions : Array(PluginActionSnapshot) = [] of PluginActionSnapshot,
       @active_tab : Int32 = 0,
       @tabs : Array(TabSnapshot) = [] of TabSnapshot

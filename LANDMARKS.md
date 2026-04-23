@@ -103,3 +103,11 @@ Commander has a local Unix socket automation server that accepts one newline-del
 Evidence: `src/automation_protocol.cr`, `src/automation_server.cr`, `spec/automation_protocol_spec.cr`, `spec/automation_server_spec.cr`, `scripts/commanderctl`, `scripts/ipc_smoke`, `specs/AutomationSpec.cs.md`.
 
 Trust: `{F:0.8,G:0.6,R:0.8}` targeted registry/protocol/server/snapshot specs passed with 26 examples, `crystal spec` passed with 96 examples, `sh scripts/spec_check` passed, `make commander` passed, `shards build` passed, `commanderctl state` verified `file.copy_to.mutating=true` and `file.delete_plan.mutating=false`, `scripts/tabs_smoke`, `scripts/vfs_smoke`, and `scripts/ipc_smoke` passed, and automation specs covered valid IPC, structured command envelopes, read-only snapshot requests, malformed JSON, existing-path safety, metadata-backed mutating command denial, and dry-run mutating command allowance.
+
+## LM-13: Read-only viewer sessions are snapshot-visible
+
+Commander has a read-only viewer session snapshot model separate from `PanelState`. `file.view` and `file.view_path` create `ViewerSessionSnapshot` entries for successfully loaded text previews, and `viewer.close`, `viewer.scroll`, and `viewer.search` mutate viewer-session state through command IDs. `AppSnapshot.viewer_sessions` makes active sessions visible to automation/debug layers. Rendering these sessions through retained UI widgets remains future work.
+
+Evidence: `src/snapshots.cr`, `src/commander.cr`, `spec/snapshots_spec.cr`, `docs/ViewerEditorSpec.cs.md`.
+
+Trust: `{F:0.8,G:0.5,R:0.8}` `crystal spec` passed with 97 examples, `sh scripts/spec_check` passed, `shards build` passed, `make commander` passed, `scripts/tabs_smoke`, `scripts/vfs_smoke`, and `scripts/ipc_smoke` passed, and headless command sequences verified viewer search/scroll state plus active viewer close.

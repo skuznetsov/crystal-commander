@@ -19,6 +19,23 @@ describe "Commander snapshots" do
     ok.truncated.should be_true
   end
 
+  it "ViewerSessionSnapshot tracks read-only viewer state" do
+    session = Commander::ViewerSessionSnapshot.new(
+      id: "viewer-1",
+      panel_index: 0,
+      path: "/tmp/readme.txt",
+      title: "readme.txt"
+    )
+
+    session.readonly.should be_true
+    session.dirty.should be_false
+    session.with_scroll_offset(12).scroll_offset.should eq(12)
+    searched = session.with_search("needle", 4, 2)
+    searched.search_term.should eq("needle")
+    searched.cursor_line.should eq(4)
+    searched.cursor_col.should eq(2)
+  end
+
   it "OperationPlanSnapshot summary via kind" do
     plan = Commander::OperationPlanSnapshot.new("Copy", 0, nil, ["a"], "tgt", "Copy 1 item(s) to tgt")
     plan.kind.should eq("Copy")

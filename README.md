@@ -30,6 +30,7 @@ Native macOS version of a Midnight Commander-style file manager:
 - `src/sdk.cr` — stable Crystal-facing facade for automation, plugins, VFS, and backend-neutral UI rendering.
 - `src/file_operations.cr` — safe file operation planning structs; execution is not implemented yet.
 - `src/file_preview.cr` — read-only bounded text preview for `file.view`.
+- `AppSnapshot.viewer_sessions` — read-only viewer session state for automation and future backend-neutral viewer widgets.
 - `src/commander.cr` — example of full control logic from Crystal, without native file-control logic inside `.mm`.
 
 ## SDK entrypoint
